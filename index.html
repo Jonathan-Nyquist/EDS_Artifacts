@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Elements of Data Science for the Physical and Life Sciences</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #f7f5f0;
+      --surface: #ffffff;
+      --ink: #1a1915;
+      --ink-2: #6b6860;
+      --ink-3: #a8a59f;
+      --accent: #2d5a3d;
+      --accent-light: #e8f0eb;
+      --amber: #c17d2a;
+      --amber-light: #fdf3e3;
+      --border: rgba(26,25,21,0.10);
+      --radius: 4px;
+    }
+
+    body {
+      font-family: 'DM Sans', sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      min-height: 100vh;
+      padding: 0;
+    }
+
+    /* ── Header ── */
+    header {
+      border-bottom: 1px solid var(--border);
+      padding: 3.5rem 2rem 3rem;
+      max-width: 960px;
+      margin: 0 auto;
+    }
+
+    .eyebrow {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--accent);
+      margin-bottom: 1rem;
+    }
+
+    h1 {
+      font-family: 'DM Serif Display', serif;
+      font-size: clamp(2rem, 5vw, 3.25rem);
+      font-weight: 400;
+      line-height: 1.15;
+      color: var(--ink);
+      margin-bottom: 1rem;
+    }
+
+    h1 em {
+      font-style: italic;
+      color: var(--accent);
+    }
+
+    .subtitle {
+      font-size: 16px;
+      font-weight: 300;
+      color: var(--ink-2);
+      max-width: 520px;
+      line-height: 1.65;
+    }
+
+    .subtitle a {
+      color: var(--ink);
+      text-decoration: underline;
+      text-decoration-color: var(--ink-3);
+      text-underline-offset: 3px;
+    }
+
+    .subtitle a:hover {
+      text-decoration-color: var(--ink);
+    }
+
+    /* ── Main ── */
+    main {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 3rem 2rem 5rem;
+    }
+
+    .section-header {
+      display: flex;
+      align-items: baseline;
+      gap: 1rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .section-title {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      font-weight: 500;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      color: var(--ink-3);
+    }
+
+    .section-line {
+      flex: 1;
+      height: 1px;
+      background: var(--border);
+    }
+
+    /* ── Card grid ── */
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      overflow: hidden;
+      margin-bottom: 4rem;
+    }
+
+    .card {
+      background: var(--surface);
+      padding: 1.5rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      text-decoration: none;
+      color: inherit;
+      transition: background 0.15s;
+      position: relative;
+    }
+
+    .card:hover {
+      background: #fafaf8;
+    }
+
+    .card.disabled {
+      cursor: default;
+    }
+
+    .card.disabled:hover {
+      background: var(--surface);
+    }
+
+    .card-top {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 1.25rem;
+    }
+
+    .badge {
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      font-weight: 500;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 2px;
+    }
+
+    .badge-ready {
+      background: var(--accent-light);
+      color: var(--accent);
+    }
+
+    .badge-planned {
+      background: var(--bg);
+      color: var(--ink-3);
+    }
+
+    .badge-wip {
+      background: var(--amber-light);
+      color: var(--amber);
+    }
+
+    .card-num {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-3);
+    }
+
+    .card-title {
+      font-family: 'DM Serif Display', serif;
+      font-size: 19px;
+      font-weight: 400;
+      color: var(--ink);
+      margin-bottom: 0.5rem;
+      line-height: 1.25;
+    }
+
+    .card-desc {
+      font-size: 13px;
+      color: var(--ink-2);
+      line-height: 1.6;
+      font-weight: 300;
+      flex: 1;
+    }
+
+    .card-footer {
+      margin-top: 1.25rem;
+      padding-top: 1rem;
+      border-top: 1px solid var(--border);
+      font-family: 'DM Mono', monospace;
+      font-size: 10px;
+      color: var(--ink-3);
+      letter-spacing: 0.04em;
+    }
+
+    .card-arrow {
+      font-size: 14px;
+      color: var(--ink-3);
+      transition: transform 0.15s, color 0.15s;
+    }
+
+    .card:not(.disabled):hover .card-arrow {
+      transform: translate(2px, -2px);
+      color: var(--accent);
+    }
+
+    /* ── Footer ── */
+    footer {
+      max-width: 960px;
+      margin: 0 auto;
+      padding: 0 2rem 3rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 1rem;
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+    }
+
+    .footer-left {
+      font-size: 13px;
+      color: var(--ink-3);
+      font-weight: 300;
+    }
+
+    .footer-links {
+      display: flex;
+      gap: 1.5rem;
+    }
+
+    .footer-links a {
+      font-family: 'DM Mono', monospace;
+      font-size: 11px;
+      color: var(--ink-2);
+      text-decoration: none;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+    }
+
+    .footer-links a:hover {
+      color: var(--accent);
+    }
+
+    @media (max-width: 600px) {
+      header, main { padding-left: 1.25rem; padding-right: 1.25rem; }
+      footer { padding-left: 1.25rem; padding-right: 1.25rem; }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <p class="eyebrow">UC Berkeley · Data 8</p>
+    <h1>Elements of Data Science for the<br><em>Physical and Life Sciences</em></h1>
+    <p class="subtitle">
+      Interactive explorations for science majors — built around datasets and questions
+      from the physical and life sciences. Each artifact is a hands-on companion to a
+      chapter or concept in
+      <a href="https://inferentialthinking.com" target="_blank">Inferential Thinking</a>.
+    </p>
+  </header>
+
+  <main>
+
+    <div class="section-header">
+      <span class="section-title">Chapters</span>
+      <div class="section-line"></div>
+    </div>
+
+    <div class="grid">
+
+      <!-- READY -->
+      <a class="card" href="./causality/">
+        <div class="card-top">
+          <span class="badge badge-ready">Ready</span>
+          <span class="card-num">Ch. 2</span>
+        </div>
+        <p class="card-title">Causality explorer</p>
+        <p class="card-desc">Observational vs. experimental studies, random assignment, and what it actually takes to make a causal claim.</p>
+        <div class="card-footer">
+          Causality &amp; experiments
+          <span class="card-arrow" style="float:right">↗</span>
+        </div>
+      </a>
+
+      <!-- PLANNED -->
+      <div class="card disabled">
+        <div class="card-top">
+          <span class="badge badge-planned">Planned</span>
+          <span class="card-num">Ch. 6</span>
+        </div>
+        <p class="card-title">Tables &amp; data</p>
+        <p class="card-desc">Sort, filter, group, and join tabular data — building intuition for the datascience library's core operations.</p>
+        <div class="card-footer">Tables</div>
+      </div>
+
+      <div class="card disabled">
+        <div class="card-top">
+          <span class="badge badge-planned">Planned</span>
+          <span class="card-num">Ch. 10</span>
+        </div>
+        <p class="card-title">Sampling simulator</p>
+        <p class="card-desc">Watch how sample size shapes estimates and distributions — and why larger samples aren't always better.</p>
+        <div class="card-footer">Sampling &amp; empirical distributions</div>
+      </div>
+
+      <div class="card disabled">
+        <div class="card-top">
+          <span class="badge badge-planned">Planned</span>
+          <span class="card-num">Ch. 11–12</span>
+        </div>
+        <p class="card-title">Hypothesis testing</p>
+        <p class="card-desc">Build intuition for p-values, null hypotheses, and test statistics through simulation — not formulas.</p>
+        <div class="card-footer">Testing hypotheses</div>
+      </div>
+
+      <div class="card disabled">
+        <div class="card-top">
+          <span class="badge badge-planned">Planned</span>
+          <span class="card-num">Ch. 12</span>
+        </div>
+        <p class="card-title">A/B testing</p>
+        <p class="card-desc">Compare two groups and decide whether the difference is real or just noise — the foundation of modern experiments.</p>
+        <div class="card-footer">Comparing two samples</div>
+      </div>
+
+      <div class="card disabled">
+        <div class="card-top">
+          <span class="badge badge-planned">Planned</span>
+          <span class="card-num">Ch. 15–16</span>
+        </div>
+        <p class="card-title">Regression explorer</p>
+        <p class="card-desc">Fit a line to data, explore residuals, and understand what prediction really means — and when it goes wrong.</p>
+        <div class="card-footer">Prediction &amp; regression</div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <footer>
+    <span class="footer-left">Built with Claude · Data 8 Interactive Artifacts</span>
+    <nav class="footer-links">
+      <a href="https://inferentialthinking.com" target="_blank">Textbook ↗</a>
+      <a href="https://github.com" target="_blank">GitHub ↗</a>
+    </nav>
+  </footer>
+
+</body>
+</html>
