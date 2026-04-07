@@ -377,8 +377,8 @@ function btn(label, onClick, variant = 'primary', disabled = false) {
   const b = document.createElement('button');
   b.className = `btn ${variant}`;
   b.innerHTML = label;
-  if (disabled) b.classList.add('disabled'), b.disabled = true;
-  else b.addEventListener('click', onClick);
+  if (disabled) { b.classList.add('disabled'); b.disabled = true; }
+  if (onClick) b.addEventListener('click', onClick);
   return b;
 }
 
