@@ -1,0 +1,656 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chapter 6 — Tables & Data | Inferential Thinking</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: #0f172a; font-family: system-ui, sans-serif; color: #f1f5f9; }
+  code { font-family: 'Fira Code', 'Courier New', monospace; }
+  textarea { font-family: 'Fira Code', 'Courier New', monospace; }
+  input[type=range] { cursor: pointer; }
+  ::-webkit-scrollbar { width: 6px; height: 6px; }
+  ::-webkit-scrollbar-track { background: #1e293b; }
+  ::-webkit-scrollbar-thumb { background: #475569; border-radius: 3px; }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+const { useState } = React;
+
+// ── palette ──────────────────────────────────────────────────────────────────
+const C = {
+  bg:"#0f172a", card:"#1e293b", border:"#334155",
+  accent:"#38bdf8", accentDim:"#0ea5e9",
+  green:"#4ade80", greenDim:"#16a34a",
+  yellow:"#fbbf24", yellowDim:"#d97706",
+  red:"#f87171", purple:"#c084fc",
+  text:"#f1f5f9", muted:"#94a3b8", dim:"#475569",
+};
+
+// ── demo data ────────────────────────────────────────────────────────────────
+const NBA = [
+  {PLAYER:"LeBron James",     POSITION:"SF", TEAM:"Cleveland Cavaliers",   SALARY:22.97},
+  {PLAYER:"Kobe Bryant",      POSITION:"SG", TEAM:"Los Angeles Lakers",    SALARY:25.00},
+  {PLAYER:"Stephen Curry",    POSITION:"PG", TEAM:"Golden State Warriors", SALARY:11.37},
+  {PLAYER:"Kevin Durant",     POSITION:"SF", TEAM:"Oklahoma City Thunder", SALARY:20.16},
+  {PLAYER:"James Harden",     POSITION:"SG", TEAM:"Houston Rockets",       SALARY:15.76},
+  {PLAYER:"Russell Westbrook",POSITION:"PG", TEAM:"Oklahoma City Thunder", SALARY:16.74},
+  {PLAYER:"Anthony Davis",    POSITION:"C",  TEAM:"New Orleans Pelicans",  SALARY:22.12},
+  {PLAYER:"DeMarcus Cousins", POSITION:"C",  TEAM:"Sacramento Kings",      SALARY:15.85},
+  {PLAYER:"Draymond Green",   POSITION:"PF", TEAM:"Golden State Warriors", SALARY: 3.00},
+  {PLAYER:"Kawhi Leonard",    POSITION:"SF", TEAM:"San Antonio Spurs",     SALARY:16.48},
+];
+
+// ── shared components ────────────────────────────────────────────────────────
+function TableView({rows, cols, highlight}) {
+  return (
+    <div style={{overflowX:"auto", borderRadius:8, border:`1px solid ${C.border}`}}>
+      <table style={{width:"100%", borderCollapse:"collapse", fontSize:13}}>
+        <thead>
+          <tr style={{background:C.dim}}>
+            {cols.map(c => (
+              <th key={c} style={{padding:"6px 10px", textAlign:"left",
+                color:highlight===c ? C.accent : C.text, fontFamily:"monospace"}}>
+                {c}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((r,i) => (
+            <tr key={i} style={{background:i%2===0?C.card:C.bg, borderTop:`1px solid ${C.border}`}}>
+              {cols.map(c => (
+                <td key={c} style={{padding:"5px 10px", fontFamily:"monospace",
+                  color:highlight===c ? C.accent : C.text}}>
+                  {typeof r[c]==="number" ? r[c].toFixed(2) : r[c]}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function Code({children}) {
+  return (
+    <pre style={{background:"#0d1117", border:`1px solid ${C.border}`, borderRadius:8,
+      padding:"12px 16px", fontSize:13, color:"#e2e8f0", overflowX:"auto",
+      fontFamily:"'Fira Code','Courier New',monospace", margin:"10px 0", whiteSpace:"pre-wrap"}}>
+      {children}
+    </pre>
+  );
+}
+
+function Badge({children, color="#38bdf8"}) {
+  return (
+    <span style={{background:color+"22", border:`1px solid ${color}66`,
+      color, borderRadius:4, padding:"2px 8px", fontSize:12, fontWeight:600}}>
+      {children}
+    </span>
+  );
+}
+
+function Callout({type="info", children}) {
+  const map = {info:[C.accent,"ℹ️"], tip:[C.green,"💡"], warn:[C.yellow,"⚠️"]};
+  const [col, icon] = map[type];
+  return (
+    <div style={{background:col+"15", border:`1px solid ${col}44`,
+      borderRadius:8, padding:"10px 14px", margin:"10px 0", fontSize:13,
+      color:C.text, display:"flex", gap:8, alignItems:"flex-start"}}>
+      <span style={{fontSize:15}}>{icon}</span>
+      <div>{children}</div>
+    </div>
+  );
+}
+
+// ── levels ───────────────────────────────────────────────────────────────────
+function Level1() {
+  const [step, setStep] = useState(0);
+  const rows = NBA.slice(0,5);
+  return (
+    <div>
+      <h2 style={{color:C.accent, margin:"0 0 4px"}}>Level 1 — What Is a Table?</h2>
+      <p style={{color:C.muted, marginBottom:16, fontSize:14}}>
+        Tables are the core data structure in the <code style={{color:C.accent}}>datascience</code> library. Let's get oriented.
+      </p>
+      {step >= 0 && (
+        <div style={{marginBottom:16}}>
+          <p style={{color:C.text, fontSize:14}}>A <strong style={{color:C.accent}}>Table</strong> has two equivalent views:</p>
+          <div style={{display:"grid", gridTemplateColumns:"1fr 1fr", gap:12, marginBottom:12}}>
+            <div style={{background:C.card, border:`1px solid ${C.border}`, borderRadius:8, padding:12}}>
+              <div style={{color:C.green, fontWeight:700, marginBottom:6}}>📊 Column view</div>
+              <div style={{color:C.muted, fontSize:13}}>Each column describes one <em>attribute</em> of all entries (e.g. every player's salary).</div>
+            </div>
+            <div style={{background:C.card, border:`1px solid ${C.border}`, borderRadius:8, padding:12}}>
+              <div style={{color:C.yellow, fontWeight:700, marginBottom:6}}>📋 Row view</div>
+              <div style={{color:C.muted, fontSize:13}}>Each row holds all information about one <em>entry</em> (e.g. everything about LeBron James).</div>
+            </div>
+          </div>
+          <TableView rows={rows} cols={["PLAYER","POSITION","TEAM","SALARY"]} />
+        </div>
+      )}
+      {step >= 1 && (
+        <div style={{marginBottom:16}}>
+          <p style={{color:C.text, fontSize:14}}>To create this table in code:</p>
+          <Code>{`from datascience import *
+import numpy as np
+
+nba = Table.read_table('nba_salaries.csv')
+nba  # displays the table`}</Code>
+          <p style={{color:C.text, fontSize:14}}>You can also build a small table by hand:</p>
+          <Code>{`flowers = Table().with_columns(
+    'Petals',  make_array(8, 34, 5),
+    'Name',    make_array('lotus', 'sunflower', 'rose'),
+    'Color',   make_array('pink', 'yellow', 'red')
+)`}</Code>
+          <Callout type="tip">
+            <code>with_columns</code> takes pairs of <em>label, array</em>. All arrays must be the same length!
+          </Callout>
+        </div>
+      )}
+      {step >= 2 && (
+        <div style={{marginBottom:16}}>
+          <p style={{color:C.text, fontSize:14}}>Useful size-checking methods:</p>
+          <Code>{`nba.num_rows     # → 417
+nba.num_columns  # → 4
+nba.labels       # → ('PLAYER', 'POSITION', 'TEAM', 'SALARY')`}</Code>
+          <Callout>These come in handy when working with large tables where you can't see all the rows at once.</Callout>
+        </div>
+      )}
+      <div style={{display:"flex", gap:10, flexWrap:"wrap"}}>
+        {step < 2 && (
+          <button onClick={() => setStep(s => s+1)}
+            style={{background:C.accent, color:"#000", border:"none", borderRadius:6,
+              padding:"8px 18px", fontWeight:700, cursor:"pointer"}}>
+            {step===0 ? "Show the code →" : "Check sizes →"}
+          </button>
+        )}
+        {step === 2 && (
+          <div style={{background:C.greenDim+"33", border:`1px solid ${C.green}`,
+            borderRadius:8, padding:"8px 16px", color:C.green, fontWeight:700}}>
+            ✓ Level 1 complete — you know what a Table is!
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Level2() {
+  const [selected, setSelected] = useState([]);
+  const [mode, setMode] = useState("select");
+  const allCols = ["PLAYER","POSITION","TEAM","SALARY"];
+  const rows = NBA.slice(0,5);
+  const toggle = c => setSelected(s => s.includes(c) ? s.filter(x=>x!==c) : [...s,c]);
+  const display = mode==="select"
+    ? (selected.length ? selected : allCols)
+    : allCols.filter(c => !selected.includes(c));
+  const code = mode==="select"
+    ? `nba.select(${selected.map(c=>`'${c}'`).join(", ") || "..."})`
+    : `nba.drop(${selected.map(c=>`'${c}'`).join(", ") || "..."})`;
+  return (
+    <div>
+      <h2 style={{color:C.accent, margin:"0 0 4px"}}>Level 2 — Selecting & Dropping Columns</h2>
+      <p style={{color:C.muted, marginBottom:16, fontSize:14}}>
+        <code style={{color:C.accent}}>select</code> keeps the columns you want.{" "}
+        <code style={{color:C.yellow}}>drop</code> removes the ones you don't.
+      </p>
+      <Code>{`nba.select('PLAYER', 'SALARY')  # keep only these two
+nba.drop('POSITION', 'TEAM')    # remove these two`}</Code>
+      <Callout type="tip">Both return a <em>new</em> table — the original is never changed. You can always go back!</Callout>
+      <p style={{color:C.text, fontSize:14, marginTop:16}}><strong>Try it:</strong> Switch mode, check columns, and watch the table update.</p>
+      <div style={{display:"flex", gap:10, marginBottom:12, flexWrap:"wrap"}}>
+        {["select","drop"].map(m => (
+          <button key={m} onClick={() => { setMode(m); setSelected([]); }}
+            style={{background:mode===m?(m==="select"?C.accent:C.yellow):C.dim,
+              color:mode===m?"#000":C.text, border:"none", borderRadius:6,
+              padding:"6px 16px", fontWeight:700, cursor:"pointer", fontFamily:"monospace"}}>
+            .{m}()
+          </button>
+        ))}
+      </div>
+      <div style={{display:"flex", gap:8, marginBottom:12, flexWrap:"wrap"}}>
+        {allCols.map(c => {
+          const active = selected.includes(c);
+          return (
+            <button key={c} onClick={() => toggle(c)}
+              style={{background:active?(mode==="select"?C.accent:C.yellow)+"33":C.card,
+                border:`2px solid ${active?(mode==="select"?C.accent:C.yellow):C.border}`,
+                color:active?(mode==="select"?C.accent:C.yellow):C.muted,
+                borderRadius:6, padding:"6px 14px", fontWeight:600, cursor:"pointer",
+                fontFamily:"monospace", fontSize:13}}>
+              {c} {active ? "✓" : ""}
+            </button>
+          );
+        })}
+      </div>
+      <div style={{background:"#0d1117", borderRadius:8, padding:"8px 14px",
+        fontFamily:"monospace", fontSize:13, color:C.accent, marginBottom:12}}>
+        {code}
+      </div>
+      {display.length > 0
+        ? <TableView rows={rows} cols={display} />
+        : <Callout type="warn">You dropped all columns — nothing left to show!</Callout>
+      }
+      <Callout style={{marginTop:12}}>
+        Note: <code>nba.column('SALARY')</code> returns an <em>array</em>, not a table. <code>nba.select('SALARY')</code> returns a <em>table</em> with one column. Know the difference!
+      </Callout>
+    </div>
+  );
+}
+
+function Level3() {
+  const [col, setCol] = useState("SALARY");
+  const [desc, setDesc] = useState(false);
+  const [shown, setShown] = useState(false);
+  const sorted = [...NBA].sort((a,b) => {
+    if (typeof a[col]==="number") return desc ? b[col]-a[col] : a[col]-b[col];
+    return desc ? b[col].localeCompare(a[col]) : a[col].localeCompare(b[col]);
+  });
+  const code = `nba.sort('${col}'${desc ? ", descending=True" : ""})`;
+  return (
+    <div>
+      <h2 style={{color:C.accent, margin:"0 0 4px"}}>Level 3 — Sorting Rows</h2>
+      <p style={{color:C.muted, marginBottom:16, fontSize:14}}>
+        <code style={{color:C.accent}}>.sort()</code> reorders rows by a column's values.
+        By default it's ascending; use <code style={{color:C.yellow}}>descending=True</code> to flip it.
+      </p>
+      <Code>{`nba.sort('SALARY')                    # ascending (lowest first)
+nba.sort('SALARY', descending=True)   # descending (highest first)
+nba.sort('PLAYER')                    # alphabetical`}</Code>
+      <Callout type="tip">
+        <code>descending=True</code> is a <strong>named argument</strong>. Including the name makes the code self-documenting — it's obvious what <code>True</code> means here.
+      </Callout>
+      <p style={{color:C.text, fontSize:14, marginTop:16}}><strong>Explore it:</strong> Choose a column and direction.</p>
+      <div style={{display:"flex", gap:10, flexWrap:"wrap", marginBottom:12, alignItems:"center"}}>
+        <span style={{color:C.muted, fontSize:13}}>Sort by:</span>
+        {["PLAYER","POSITION","TEAM","SALARY"].map(c => (
+          <button key={c} onClick={() => setCol(c)}
+            style={{background:col===c?C.accent+"33":C.card,
+              border:`2px solid ${col===c?C.accent:C.border}`,
+              color:col===c?C.accent:C.muted,
+              borderRadius:6, padding:"5px 12px", cursor:"pointer",
+              fontFamily:"monospace", fontSize:13, fontWeight:600}}>
+            {c}
+          </button>
+        ))}
+        <span style={{color:C.muted, fontSize:13, marginLeft:8}}>Direction:</span>
+        {[["Ascending",false],["Descending",true]].map(([label,val]) => (
+          <button key={label} onClick={() => setDesc(val)}
+            style={{background:desc===val?C.yellow+"33":C.card,
+              border:`2px solid ${desc===val?C.yellow:C.border}`,
+              color:desc===val?C.yellow:C.muted,
+              borderRadius:6, padding:"5px 12px", cursor:"pointer", fontSize:13}}>
+            {label}
+          </button>
+        ))}
+      </div>
+      <div style={{background:"#0d1117", borderRadius:8, padding:"8px 14px",
+        fontFamily:"monospace", fontSize:13, color:C.accent, marginBottom:12}}>
+        {code}
+      </div>
+      <TableView rows={sorted} cols={["PLAYER","POSITION","TEAM","SALARY"]} highlight={col} />
+      <div style={{marginTop:16}}>
+        <p style={{color:C.text, fontSize:14}}><strong>🤔 Quick check:</strong> After sorting by SALARY descending, who is #1?</p>
+        {!shown && (
+          <button onClick={() => setShown(true)}
+            style={{background:C.purple+"22", border:`1px solid ${C.purple}`,
+              color:C.purple, borderRadius:6, padding:"6px 14px", cursor:"pointer", fontSize:13, marginTop:8}}>
+            Reveal answer
+          </button>
+        )}
+        {shown && (
+          <Callout type="tip">
+            Kobe Bryant at $25M — his final Lakers season. Note that Stephen Curry appears much further down the list despite winning the MVP that year. Salaries don't always reflect performance!
+          </Callout>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Level4() {
+  const [pos, setPos] = useState("ALL");
+  const [minSal, setMinSal] = useState(0);
+  const [maxSal, setMaxSal] = useState(30);
+  const [showRef, setShowRef] = useState(false);
+  const positions = ["ALL","PG","SG","SF","PF","C"];
+  const filtered = NBA.filter(r =>
+    (pos==="ALL" || r.POSITION===pos) &&
+    r.SALARY >= minSal && r.SALARY <= maxSal
+  );
+  let codeLine = "nba";
+  if (pos !== "ALL") codeLine += `\n   .where('POSITION', '${pos}')`;
+  if (minSal > 0 || maxSal < 30) codeLine += `\n   .where('SALARY', are.between(${minSal}, ${maxSal}))`;
+  return (
+    <div>
+      <h2 style={{color:C.accent, margin:"0 0 4px"}}>Level 4 — Filtering Rows with <code>.where()</code></h2>
+      <p style={{color:C.muted, marginBottom:16, fontSize:14}}>
+        <code style={{color:C.accent}}>.where()</code> keeps only rows that satisfy a condition.
+        Conditions are written using <code style={{color:C.yellow}}>are</code> predicates.
+      </p>
+      <Code>{`nba.where('SALARY', are.above(10))            # salary > 10
+nba.where('TEAM',   are.equal_to('Warriors'))  # exact match
+nba.where('TEAM',   'Warriors')               # shorthand for equal_to
+nba.where('PLAYER', are.containing('James'))  # string contains
+nba.where('SALARY', are.between(10, 20))      # 10 ≤ salary < 20`}</Code>
+      <Callout type="tip">Chain multiple <code>.where()</code> calls to filter on more than one condition — like SQL's AND.</Callout>
+      <p style={{color:C.text, fontSize:14, marginTop:16}}><strong>Filter builder:</strong></p>
+      <div style={{display:"flex", gap:12, flexWrap:"wrap", marginBottom:12, alignItems:"flex-start"}}>
+        <div>
+          <div style={{color:C.muted, fontSize:12, marginBottom:4}}>Position</div>
+          <div style={{display:"flex", gap:6, flexWrap:"wrap"}}>
+            {positions.map(p => (
+              <button key={p} onClick={() => setPos(p)}
+                style={{background:pos===p?C.accent+"33":C.card,
+                  border:`2px solid ${pos===p?C.accent:C.border}`,
+                  color:pos===p?C.accent:C.muted,
+                  borderRadius:5, padding:"4px 10px", cursor:"pointer",
+                  fontFamily:"monospace", fontSize:12, fontWeight:600}}>
+                {p}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div style={{flex:1, minWidth:200}}>
+          <div style={{color:C.muted, fontSize:12, marginBottom:4}}>
+            Salary range: ${minSal}M – ${maxSal}M
+          </div>
+          <div style={{display:"flex", gap:8, alignItems:"center"}}>
+            <span style={{color:C.muted, fontSize:11}}>$0</span>
+            <input type="range" min={0} max={25} value={minSal}
+              onChange={e => setMinSal(+e.target.value)}
+              style={{flex:1, accentColor:C.accent}} />
+            <input type="range" min={minSal} max={30} value={maxSal}
+              onChange={e => setMaxSal(+e.target.value)}
+              style={{flex:1, accentColor:C.yellow}} />
+            <span style={{color:C.muted, fontSize:11}}>$30M</span>
+          </div>
+        </div>
+      </div>
+      <div style={{background:"#0d1117", borderRadius:8, padding:"8px 14px",
+        fontFamily:"monospace", fontSize:13, color:C.accent, marginBottom:10, whiteSpace:"pre-wrap"}}>
+        {codeLine}
+      </div>
+      <div style={{color:C.muted, fontSize:13, marginBottom:8}}>
+        {filtered.length} row{filtered.length!==1?"s":""} match
+      </div>
+      {filtered.length > 0
+        ? <TableView rows={filtered} cols={["PLAYER","POSITION","TEAM","SALARY"]} />
+        : <Callout type="warn">No rows match those conditions.</Callout>
+      }
+      <div style={{marginTop:16}}>
+        <button onClick={() => setShowRef(s => !s)}
+          style={{background:C.purple+"22", border:`1px solid ${C.purple}`,
+            color:C.purple, borderRadius:6, padding:"6px 14px", cursor:"pointer", fontSize:13}}>
+          {showRef ? "Hide" : "Show"} are.* quick reference
+        </button>
+        {showRef && (
+          <div style={{marginTop:12, overflowX:"auto"}}>
+            <table style={{borderCollapse:"collapse", fontSize:13, width:"100%"}}>
+              <thead>
+                <tr style={{background:C.dim}}>
+                  <th style={{padding:"6px 12px", textAlign:"left", color:C.text}}>Predicate</th>
+                  <th style={{padding:"6px 12px", textAlign:"left", color:C.text}}>Meaning</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[
+                  ["are.equal_to(Z)","= Z"],
+                  ["are.above(x)","> x"],
+                  ["are.above_or_equal_to(x)","≥ x"],
+                  ["are.below(x)","< x"],
+                  ["are.between(x, y)","x ≤ value < y"],
+                  ["are.containing(S)","string contains S"],
+                  ["are.not_equal_to(Z)","≠ Z"],
+                ].map(([p,d],i) => (
+                  <tr key={p} style={{background:i%2===0?C.card:C.bg, borderTop:`1px solid ${C.border}`}}>
+                    <td style={{padding:"5px 12px", fontFamily:"monospace", color:C.yellow}}>{p}</td>
+                    <td style={{padding:"5px 12px", color:C.muted}}>{d}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function Level5() {
+  const [answers, setAnswers] = useState({q1:"",q2:"",q3:"",q4:""});
+  const [status, setStatus] = useState({q1:null,q2:null,q3:null,q4:null});
+  const questions = [
+    {
+      id:"q1",
+      prompt:"Write code to show only Warriors players, sorted by salary (highest first).",
+      hint:"Chain .where() then .sort() with descending=True.",
+      notes:"Any of these work:\n• are.containing('Warriors')\n• are.equal_to('Golden State Warriors')\n• 'Golden State Warriors'  (shorthand for equal_to)",
+      solution:`nba.where('TEAM', are.containing('Warriors'))\n   .sort('SALARY', descending=True)`
+    },
+    {
+      id:"q2",
+      prompt:"Select only the PLAYER and SALARY columns from nba.",
+      hint:"Use .select() with two column name strings.",
+      notes:"Alternatively, .drop('POSITION', 'TEAM') produces the same result — two valid approaches!",
+      solution:`nba.select('PLAYER', 'SALARY')`
+    },
+    {
+      id:"q3",
+      prompt:"Filter to all Point Guards (PG) who earn more than $15 million.",
+      hint:"Two .where() calls chained — one for position, one for salary.",
+      notes:"Order doesn't matter here — filtering on POSITION first or SALARY first gives the same result.",
+      solution:`nba.where('POSITION', 'PG')\n   .where('SALARY', are.above(15))`
+    },
+    {
+      id:"q4",
+      prompt:"Retrieve only the 3rd, 4th, and 5th rows of the table (remembering that Python indices start at 0).",
+      hint:"Use .take() with np.arange(). Row 3 is index 2.",
+      notes:"np.arange(2, 5) produces array([2, 3, 4]) — the indices for rows 3, 4, and 5.",
+      solution:`nba.take(np.arange(2, 5))`
+    }
+  ];
+  const reveal = id => setStatus(s => ({...s, [id]:"revealed"}));
+  const selfAssess = (id, val) => setStatus(s => ({...s, [id]:val}));
+  const doneCount = Object.values(status).filter(v => v==="yes"||v==="no").length;
+  const allDone = doneCount === questions.length;
+  return (
+    <div>
+      <h2 style={{color:C.accent, margin:"0 0 4px"}}>Level 5 — Challenge: Write the Code</h2>
+      <p style={{color:C.muted, marginBottom:16, fontSize:14}}>
+        Four challenges combining everything from Levels 1–4. Write your best answer, then reveal
+        a model solution and honestly assess how close you got.
+      </p>
+      <Callout>
+        You're working with a table called <code>nba</code> with columns: PLAYER, POSITION, TEAM, SALARY.
+      </Callout>
+      {questions.map((q,i) => {
+        const st = status[q.id];
+        const borderColor = st==="yes"?C.green:st==="no"?C.yellow:C.border;
+        return (
+          <div key={q.id} style={{background:C.card, border:`1px solid ${borderColor}`,
+            borderRadius:10, padding:16, marginTop:14}}>
+            <div style={{display:"flex", alignItems:"flex-start", gap:10, marginBottom:10}}>
+              <Badge color={C.purple}>#{i+1}</Badge>
+              <span style={{color:C.text, fontSize:14, fontWeight:600}}>{q.prompt}</span>
+            </div>
+            <textarea
+              value={answers[q.id]}
+              onChange={e => setAnswers(a => ({...a, [q.id]:e.target.value}))}
+              placeholder="# write your code here"
+              rows={3}
+              style={{width:"100%", background:"#0d1117", border:`1px solid ${C.border}`,
+                borderRadius:6, padding:"10px 12px", color:C.text,
+                fontSize:13, resize:"vertical"}}
+            />
+            {st === null && (
+              <div style={{display:"flex", gap:8, marginTop:8, flexWrap:"wrap"}}>
+                <button onClick={() => reveal(q.id)}
+                  style={{background:C.accent, color:"#000", border:"none", borderRadius:5,
+                    padding:"6px 14px", fontWeight:700, cursor:"pointer", fontSize:13}}>
+                  Show model answer →
+                </button>
+                <button onClick={() => setStatus(s => ({...s, [q.id]:s[q.id]==="hint"?null:"hint"}))}
+                  style={{background:C.dim, color:C.text, border:"none", borderRadius:5,
+                    padding:"6px 14px", cursor:"pointer", fontSize:13}}>
+                  Hint
+                </button>
+              </div>
+            )}
+            {st === "hint" && (
+              <>
+                <Callout type="tip">💡 {q.hint}</Callout>
+                <div style={{display:"flex", gap:8, marginTop:8}}>
+                  <button onClick={() => reveal(q.id)}
+                    style={{background:C.accent, color:"#000", border:"none", borderRadius:5,
+                      padding:"6px 14px", fontWeight:700, cursor:"pointer", fontSize:13}}>
+                    Show model answer →
+                  </button>
+                </div>
+              </>
+            )}
+            {(st==="revealed"||st==="yes"||st==="no") && (
+              <div style={{marginTop:12}}>
+                <div style={{color:C.muted, fontSize:12, fontWeight:700,
+                  textTransform:"uppercase", letterSpacing:1, marginBottom:4}}>
+                  Model answer
+                </div>
+                <Code>{q.solution}</Code>
+                <Callout>{q.notes}</Callout>
+              </div>
+            )}
+            {st === "revealed" && (
+              <div style={{marginTop:12}}>
+                <div style={{color:C.text, fontSize:13, marginBottom:8}}>How does your answer compare?</div>
+                <div style={{display:"flex", gap:8}}>
+                  <button onClick={() => selfAssess(q.id,"yes")}
+                    style={{background:C.green+"22", border:`1px solid ${C.green}`,
+                      color:C.green, borderRadius:6, padding:"6px 16px",
+                      cursor:"pointer", fontWeight:700, fontSize:13}}>
+                    ✓ Got it
+                  </button>
+                  <button onClick={() => selfAssess(q.id,"no")}
+                    style={{background:C.yellow+"22", border:`1px solid ${C.yellow}`,
+                      color:C.yellow, borderRadius:6, padding:"6px 16px",
+                      cursor:"pointer", fontWeight:700, fontSize:13}}>
+                    ↩ Need more practice
+                  </button>
+                </div>
+              </div>
+            )}
+            {(st==="yes"||st==="no") && (
+              <div style={{marginTop:10, fontSize:13, color:st==="yes"?C.green:C.yellow}}>
+                {st==="yes" ? "✓ Marked as got it" : "↩ Flagged for review — revisit Levels 2–4"}
+              </div>
+            )}
+          </div>
+        );
+      })}
+      {allDone && (
+        <div style={{marginTop:20, background:C.green+"22",
+          border:`2px solid ${C.green}`, borderRadius:12, padding:20, textAlign:"center"}}>
+          <div style={{fontSize:28}}>🏆</div>
+          <div style={{color:C.green, fontSize:18, fontWeight:800, marginTop:4}}>Chapter 6 Complete!</div>
+          <div style={{color:C.muted, fontSize:13, marginTop:8}}>
+            You can now create tables, select & drop columns, sort rows,
+            filter with <code>.where()</code>, and chain operations together.
+            Next up: Chapter 7 — Visualization!
+          </div>
+          {Object.values(status).some(v=>v==="no") && (
+            <div style={{marginTop:10, color:C.yellow, fontSize:13}}>
+              You flagged some questions for review — go back and re-read those levels before moving on.
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── main app ─────────────────────────────────────────────────────────────────
+const LEVELS = [
+  {num:1, label:"What Is a Table?",     icon:"📋", Component:Level1},
+  {num:2, label:"Select & Drop",        icon:"✂️",  Component:Level2},
+  {num:3, label:"Sort Rows",            icon:"🔢", Component:Level3},
+  {num:4, label:"Filter with .where()", icon:"🔍", Component:Level4},
+  {num:5, label:"Challenge",            icon:"🏆", Component:Level5},
+];
+
+function App() {
+  const [active, setActive] = useState(0);
+  const {Component} = LEVELS[active];
+  return (
+    <div style={{background:C.bg, minHeight:"100vh", color:C.text,
+      fontFamily:"system-ui, sans-serif", paddingBottom:40}}>
+      <div style={{background:C.card, borderBottom:`1px solid ${C.border}`,
+        padding:"14px 20px", display:"flex", alignItems:"center", gap:12}}>
+        <span style={{fontSize:22}}>🗃️</span>
+        <div>
+          <div style={{fontWeight:800, fontSize:16, color:C.text}}>Chapter 6 — Tables & Data</div>
+          <div style={{fontSize:12, color:C.muted}}>
+            Inferential Thinking · <code>datascience</code> library
+          </div>
+        </div>
+      </div>
+      <div style={{display:"flex", gap:0, borderBottom:`1px solid ${C.border}`,
+        overflowX:"auto", background:C.card}}>
+        {LEVELS.map((l,i) => (
+          <button key={i} onClick={() => setActive(i)}
+            style={{background:active===i?C.bg:"transparent",
+              borderBottom:active===i?`3px solid ${C.accent}`:"3px solid transparent",
+              borderTop:"none", borderLeft:"none", borderRight:"none",
+              color:active===i?C.accent:C.muted,
+              padding:"10px 16px", cursor:"pointer",
+              fontWeight:active===i?700:400, fontSize:13,
+              whiteSpace:"nowrap", display:"flex", alignItems:"center", gap:6}}>
+            <span>{l.icon}</span>
+            <span>L{l.num}: {l.label}</span>
+          </button>
+        ))}
+      </div>
+      <div style={{maxWidth:820, margin:"0 auto", padding:"24px 20px"}}>
+        <Component />
+        <div style={{display:"flex", justifyContent:"space-between",
+          marginTop:32, borderTop:`1px solid ${C.border}`, paddingTop:16}}>
+          <button onClick={() => setActive(a => Math.max(0,a-1))}
+            disabled={active===0}
+            style={{background:active===0?C.dim:C.card,
+              border:`1px solid ${C.border}`,
+              color:active===0?C.dim:C.text,
+              borderRadius:6, padding:"8px 16px",
+              cursor:active===0?"default":"pointer", fontSize:13}}>
+            ← Previous
+          </button>
+          <div style={{color:C.muted, fontSize:12, alignSelf:"center"}}>
+            Level {active+1} of {LEVELS.length}
+          </div>
+          <button onClick={() => setActive(a => Math.min(LEVELS.length-1,a+1))}
+            disabled={active===LEVELS.length-1}
+            style={{background:active===LEVELS.length-1?C.dim:C.accent,
+              border:"none",
+              color:active===LEVELS.length-1?C.dim:"#000",
+              borderRadius:6, padding:"8px 16px",
+              cursor:active===LEVELS.length-1?"default":"pointer",
+              fontWeight:700, fontSize:13}}>
+            Next →
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
