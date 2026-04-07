@@ -527,7 +527,10 @@ function level2() {
     fbEl,
   ]);
 
-  const lockBtn = btn('Lock in Hypothesis →', () => advance({ treatment: t, outcome: o, direction: d }), 'primary', true);
+  const lockBtn = btn('Lock in Hypothesis →', null, 'primary', true);
+  lockBtn.addEventListener('click', () => {
+    if (!lockBtn.disabled) advance({ treatment: t, outcome: o, direction: d });
+  });
   const nextWrap = rowEnd(lockBtn);
 
   wrap.append(instrCard, hypCard, nextWrap);
