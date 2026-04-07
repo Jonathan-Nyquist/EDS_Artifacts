@@ -1,0 +1,960 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Experiment Design Machine</title>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@700;800&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg: #0A0A0A;
+  --card: #FFFFFF;
+  --offwhite: #F5F0E8;
+  --border: #000000;
+  --accent: #FFE14D;
+  --accent-text: #111111;
+  --success: #00C853;
+  --error: #FF3B30;
+  --text-dark: #111111;
+  --text-mid: #444444;
+  --shadow: 6px 6px 0px #000000;
+  --shadow-sm: 4px 4px 0px #000000;
+  --shadow-press: 2px 2px 0px #000000;
+  --font-head: 'Space Grotesk', sans-serif;
+  --font-body: 'DM Sans', sans-serif;
+}
+
+body {
+  background: var(--bg);
+  font-family: var(--font-body);
+  padding: 24px 20px;
+  min-height: 100vh;
+}
+
+#app { max-width: 680px; margin: 0 auto; }
+
+/* ── Scrollbar ── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #1a1a1a; }
+::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 3px; }
+
+/* ── Animations ── */
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.slide-up { animation: slideUp 0.25s ease; }
+
+/* ── Card ── */
+.card {
+  background: var(--card);
+  border: 3px solid var(--border);
+  border-radius: 8px;
+  box-shadow: var(--shadow);
+  padding: 20px 24px;
+  margin-bottom: 16px;
+}
+.card.accent { background: var(--accent); }
+
+/* ── Badge ── */
+.badge {
+  display: inline-block;
+  background: var(--accent);
+  color: var(--text-dark);
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 3px 10px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+/* ── Button ── */
+.btn {
+  background: var(--accent);
+  color: var(--accent-text);
+  border: 3px solid var(--border);
+  border-radius: 6px;
+  box-shadow: var(--shadow-sm);
+  padding: 10px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+  transition: transform 0.08s, box-shadow 0.08s;
+  user-select: none;
+}
+.btn:active { transform: translate(2px,2px); box-shadow: var(--shadow-press); }
+.btn.ghost { background: #fff; color: var(--text-dark); }
+.btn.dark  { background: #1A1A1A; color: #fff; }
+.btn:disabled, .btn.disabled {
+  background: var(--offwhite); color: #aaa;
+  border-color: #ccc; box-shadow: none; cursor: not-allowed;
+  transform: none;
+}
+
+/* ── Feedback ── */
+.feedback {
+  border: 3px solid #000;
+  border-radius: 6px;
+  padding: 12px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  margin-top: 12px;
+  animation: slideUp 0.2s ease;
+}
+.feedback.correct   { background: #CCFFCC; border-left: 6px solid var(--success); font-weight: 700; }
+.feedback.incorrect { background: #FFE5E5; border-left: 6px solid var(--error); }
+.feedback.hint      { background: #FFFACC; border-left: 6px solid var(--accent); }
+.feedback.info      { background: #E8F4FF; border-left: 6px solid #60A5FA; }
+
+/* ── Progress dots ── */
+.progress-dots { display: flex; gap: 8px; align-items: center; }
+.dot {
+  width: 10px; height: 10px;
+  border-radius: 50%; border: 2px solid #000;
+  background: transparent;
+  transition: all 0.2s;
+}
+.dot.current { width: 14px; height: 14px; background: var(--accent); box-shadow: var(--shadow-press); }
+.dot.done    { background: var(--success); }
+
+/* ── Banner ── */
+#banner {
+  background: var(--accent);
+  border: 3px solid #000;
+  border-radius: 10px;
+  padding: 18px 24px;
+  margin-bottom: 20px;
+  box-shadow: var(--shadow);
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+.banner-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; color: #000; opacity: 0.55; }
+.banner-title { font-family: var(--font-head); font-size: 26px; font-weight: 800; color: var(--text-dark); margin-top: 2px; line-height: 1.1; }
+.banner-step { font-size: 11px; font-weight: 700; color: #000; opacity: 0.55; text-transform: uppercase; letter-spacing: 0.08em; text-align: right; margin-bottom: 8px; }
+
+/* ── Option buttons ── */
+.opt-btn {
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-dark);
+  cursor: pointer;
+  text-align: left;
+  box-shadow: 2px 2px 0 #000;
+  transition: all 0.15s;
+  width: 100%;
+  font-family: var(--font-body);
+  display: block;
+  margin-bottom: 8px;
+}
+.opt-btn:last-child { margin-bottom: 0; }
+.opt-btn.correct { background: #CCFFCC; border-color: var(--success); }
+.opt-btn.incorrect { background: #FFE5E5; border-color: var(--error); }
+.opt-btn:disabled { cursor: default; }
+
+/* ── Two-col binary buttons ── */
+.binary-btns { display: flex; gap: 12px; }
+.binary-btn {
+  flex: 1;
+  background: #fff;
+  border: 3px solid #000;
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  padding: 14px 10px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 800;
+  cursor: pointer;
+  color: var(--text-dark);
+  transition: all 0.15s;
+}
+.binary-btn.correct  { background: #CCFFCC; border-color: var(--success); }
+.binary-btn.incorrect { background: #FFE5E5; border-color: var(--error); }
+.binary-btn:disabled { cursor: default; }
+
+/* ── Flex helpers ── */
+.row { display: flex; }
+.row.end { justify-content: flex-end; }
+.row.between { justify-content: space-between; align-items: flex-start; }
+.gap-8 { gap: 8px; }
+.gap-12 { gap: 12px; }
+.mt-8  { margin-top: 8px; }
+.mt-12 { margin-top: 12px; }
+.mt-16 { margin-top: 16px; }
+.mb-8  { margin-bottom: 8px; }
+.mb-12 { margin-bottom: 12px; }
+.mb-16 { margin-bottom: 16px; }
+
+/* ── Typography ── */
+.head { font-family: var(--font-head); }
+.label { font-size: 11px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-mid); }
+.body-text { font-size: 15px; color: var(--text-dark); margin-top: 12px; }
+
+/* ── Hypothesis builder ── */
+.hyp-box {
+  background: var(--offwhite);
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 18px 20px;
+  font-family: var(--font-head);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-dark);
+  line-height: 2.6;
+}
+.hyp-box select {
+  background: var(--accent);
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-family: var(--font-head);
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-dark);
+  cursor: pointer;
+  box-shadow: var(--shadow-press);
+}
+.hyp-box select.empty {
+  background: #fff;
+  box-shadow: none;
+}
+
+/* ── Variable rows ── */
+.var-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 12px 16px;
+  box-shadow: var(--shadow-sm);
+  transition: background 0.2s;
+  margin-bottom: 10px;
+}
+.var-row:last-child { margin-bottom: 0; }
+.var-row select {
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 4px 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  font-family: var(--font-body);
+}
+.var-label { flex: 1; font-size: 14px; font-weight: 600; color: var(--text-dark); }
+.var-hint  { font-size: 12px; color: var(--error); margin-left: 8px; }
+
+/* ── Var type legend ── */
+.var-legend { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.var-chip {
+  border: 2px solid #000;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 700;
+}
+.var-chip .chip-desc { font-weight: 400; font-size: 11px; margin-top: 2px; }
+
+/* ── Group boxes ── */
+.groups-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px; }
+.group-box {
+  border: 3px solid #000;
+  border-radius: 8px;
+  padding: 14px 16px;
+  box-shadow: var(--shadow-sm);
+  min-height: 140px;
+}
+.group-title { font-family: var(--font-head); font-size: 13px; font-weight: 800; margin-bottom: 10px; color: var(--text-dark); }
+.chips-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.student-chip {
+  background: #fff;
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 3px 8px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* ── Unassigned students ── */
+.unassigned-wrap { display: flex; flex-wrap: wrap; gap: 8px; }
+.assign-pair { display: flex; gap: 6px; }
+.assign-btn {
+  border: 2px solid #000;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  box-shadow: 2px 2px 0 #000;
+  font-family: var(--font-body);
+}
+
+/* ── Takeaway rows ── */
+.takeaway-row {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 10px 0;
+  border-bottom: 1px solid #eee;
+}
+.takeaway-row:last-child { border-bottom: none; }
+.takeaway-icon { font-size: 20px; flex-shrink: 0; }
+.takeaway-title { font-size: 14px; font-weight: 700; color: var(--text-dark); }
+.takeaway-desc  { font-size: 13px; color: var(--text-mid); margin-top: 2px; }
+
+/* ── Completion screen ── */
+#completion { animation: slideUp 0.3s ease; text-align: center; }
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="banner">
+    <div>
+      <div class="banner-eyebrow">Elements of Data Science · Concept 2</div>
+      <div class="banner-title">The Experiment<br>Design Machine</div>
+    </div>
+    <div>
+      <div class="banner-step" id="step-label">Step 1 of 6</div>
+      <div class="progress-dots" id="progress-dots"></div>
+    </div>
+  </div>
+  <div id="level-container"></div>
+</div>
+
+<script>
+// ── State ──────────────────────────────────────────────────────────────────
+const state = {
+  step: 0,
+  completed: [],
+  hypothesis: null,
+  run: 0,
+};
+const TOTAL_STEPS = 6;
+
+// ── Utility ────────────────────────────────────────────────────────────────
+function el(tag, attrs = {}, ...children) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === 'className') e.className = v;
+    else if (k.startsWith('on')) e.addEventListener(k.slice(2).toLowerCase(), v);
+    else e.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null) continue;
+    e.append(typeof c === 'string' ? document.createTextNode(c) : c);
+  }
+  return e;
+}
+
+function feedback(type, html) {
+  const d = document.createElement('div');
+  d.className = `feedback ${type}`;
+  d.innerHTML = html;
+  return d;
+}
+
+function card(content, accent = false) {
+  const d = document.createElement('div');
+  d.className = accent ? 'card accent' : 'card';
+  if (typeof content === 'string') d.innerHTML = content;
+  else if (Array.isArray(content)) content.forEach(c => c && d.appendChild(c));
+  else d.appendChild(content);
+  return d;
+}
+
+function btn(label, onClick, variant = 'primary', disabled = false) {
+  const b = document.createElement('button');
+  b.className = `btn ${variant}`;
+  b.innerHTML = label;
+  if (disabled) b.classList.add('disabled'), b.disabled = true;
+  else b.addEventListener('click', onClick);
+  return b;
+}
+
+function rowEnd(...children) {
+  const d = el('div', { className: 'row end gap-12 mt-16' });
+  children.forEach(c => c && d.appendChild(c));
+  return d;
+}
+
+// ── Banner & Progress ──────────────────────────────────────────────────────
+function updateBanner() {
+  document.getElementById('step-label').textContent = `Step ${state.step + 1} of ${TOTAL_STEPS}`;
+  const dots = document.getElementById('progress-dots');
+  dots.innerHTML = '';
+  for (let i = 0; i < TOTAL_STEPS; i++) {
+    const d = document.createElement('div');
+    d.className = 'dot' +
+      (state.completed.includes(i) ? ' done' : '') +
+      (i === state.step ? ' current' : '');
+    dots.appendChild(d);
+  }
+}
+
+// ── Navigation ─────────────────────────────────────────────────────────────
+function advance(data) {
+  if (state.step === 1 && data) state.hypothesis = data;
+  if (!state.completed.includes(state.step)) state.completed.push(state.step);
+  state.step = Math.min(state.step + 1, TOTAL_STEPS - 1);
+  render();
+}
+
+function restart() {
+  state.step = 0;
+  state.completed = [];
+  state.hypothesis = null;
+  state.run++;
+  render();
+}
+
+function render() {
+  updateBanner();
+  const container = document.getElementById('level-container');
+  container.innerHTML = '';
+  const levels = [level1, level2, level3, level4, level5, level6];
+  container.appendChild(levels[state.step]());
+}
+
+// ── LEVEL 1 ────────────────────────────────────────────────────────────────
+const claimsData = [
+  { text: "Students who eat breakfast score higher on exams.", answer: "association", explanation: "This is an association — students who eat breakfast might differ in many ways (sleep, income, stress). We can't conclude breakfast causes higher scores." },
+  { text: "In a study, randomly assigned students given a tutor improved their grades by one letter grade.", answer: "causal", explanation: "Random assignment means the groups were equivalent before the intervention. The only systematic difference was the tutor — so we can attribute the improvement to tutoring." },
+  { text: "Cities with more hospitals have higher death rates.", answer: "association", explanation: "Classic confound! Sicker people go to cities with hospitals. The hospitals don't cause death — this is an association driven by a lurking variable." },
+];
+
+function level1() {
+  let idx = 0, score = 0;
+  const wrap = el('div', { className: 'slide-up' });
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 1 — Observe'),
+    el('p', { className: 'body-text' }, 'Is each claim ', el('strong', {}, 'causal'), ' (X causes Y) or an ', el('strong', {}, 'association'), ' (X and Y tend to go together)?'),
+  ]);
+
+  const claimNumEl = el('div', { className: 'label mb-8' });
+  const claimTextEl = el('p', { className: 'head', style: 'font-size:18px;font-weight:700;color:var(--text-dark);margin:0 0 20px;' });
+  const binaryWrap = el('div', { className: 'binary-btns' });
+  const fbArea = el('div');
+  const claimCard = card([claimNumEl, claimTextEl, binaryWrap, fbArea]);
+  const nextWrap = el('div', { className: 'row end' });
+
+  function renderClaim() {
+    const claim = claimsData[idx];
+    claimNumEl.textContent = `Claim ${idx + 1} of ${claimsData.length}`;
+    claimTextEl.textContent = `"${claim.text}"`;
+    binaryWrap.innerHTML = '';
+    fbArea.innerHTML = '';
+    nextWrap.innerHTML = '';
+
+    ['causal', 'association'].forEach(opt => {
+      const b = el('button', { className: 'binary-btn' }, opt === 'causal' ? '⚡ Causal' : '🔗 Association');
+      b.addEventListener('click', () => {
+        if (b.disabled) return;
+        binaryWrap.querySelectorAll('.binary-btn').forEach(x => x.disabled = true);
+        const correct = opt === claim.answer;
+        b.classList.add(correct ? 'correct' : 'incorrect');
+        if (correct) score++;
+        fbArea.appendChild(feedback(correct ? 'correct' : 'incorrect',
+          (correct ? '✓ Correct! ' : '✗ Not quite. ') + claim.explanation));
+        nextWrap.appendChild(btn(
+          idx < claimsData.length - 1 ? 'Next Claim →' : `Results (${score}/${claimsData.length}) →`,
+          () => { if (idx < claimsData.length - 1) { idx++; renderClaim(); } else advance(); }
+        ));
+      });
+      binaryWrap.appendChild(b);
+    });
+  }
+
+  renderClaim();
+  wrap.append(instrCard, claimCard, nextWrap);
+  return wrap;
+}
+
+// ── LEVEL 2 ────────────────────────────────────────────────────────────────
+const treatments  = ["listening to music","taking short breaks","studying in groups","using flashcards"];
+const outcomes    = ["exam scores","recall accuracy","study duration","quiz performance"];
+const directions  = ["increase","decrease","have no effect on"];
+
+function level2() {
+  const wrap = el('div', { className: 'slide-up' });
+  let t = '', o = '', d = '';
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 2 — Pose the Question'),
+    el('p', { className: 'body-text' }, 'Build a clear, testable hypothesis using the dropdowns below.'),
+  ]);
+
+  function makeSelect(opts, placeholder, onChange) {
+    const s = document.createElement('select');
+    s.className = 'empty';
+    s.appendChild(el('option', { value: '' }, placeholder));
+    opts.forEach(o => s.appendChild(el('option', { value: o }, o)));
+    s.addEventListener('change', e => { onChange(e.target.value); s.className = e.target.value ? '' : 'empty'; updateHyp(); });
+    return s;
+  }
+
+  const selT = makeSelect(treatments, '[treatment]', v => { t = v; });
+  const selD = makeSelect(directions, '[effect]', v => { d = v; });
+  const selO = makeSelect(outcomes, '[outcome]', v => { o = v; });
+
+  const fbEl = el('div');
+  function updateHyp() {
+    fbEl.innerHTML = '';
+    if (t && d && o) {
+      fbEl.appendChild(feedback('info', `<strong>Locked in:</strong> I hypothesize that <em>${t}</em> will <em>${d}</em> students' <em>${o}</em>. This specifies what you'll manipulate and what you'll measure.`));
+    }
+    lockBtn.disabled = !(t && d && o);
+    lockBtn.classList.toggle('disabled', !(t && d && o));
+  }
+
+  const hypBox = el('div', { className: 'hyp-box' });
+  hypBox.append('"I hypothesize that ', selT, ' will ', selD, " students' ", selO, '."');
+
+  const hypCard = card([
+    el('div', { className: 'label', style: 'margin-bottom:16px' }, 'Your Hypothesis'),
+    hypBox,
+    fbEl,
+  ]);
+
+  const lockBtn = btn('Lock in Hypothesis →', () => advance({ treatment: t, outcome: o, direction: d }), 'primary', true);
+  const nextWrap = rowEnd(lockBtn);
+
+  wrap.append(instrCard, hypCard, nextWrap);
+  return wrap;
+}
+
+// ── LEVEL 3 ────────────────────────────────────────────────────────────────
+const treatmentLabels = {
+  "listening to music": "Whether a student listens to music while studying",
+  "taking short breaks": "Whether a student takes short breaks while studying",
+  "studying in groups": "Whether a student studies in a group",
+  "using flashcards": "Whether a student uses flashcards",
+};
+const outcomeLabels = {
+  "exam scores": "Students' exam scores",
+  "recall accuracy": "Students' recall accuracy on a memory test",
+  "study duration": "Total time students spend studying",
+  "quiz performance": "Students' quiz performance",
+};
+const confoundPool = [
+  { id: 'c', label: "How much sleep students got the night before" },
+  { id: 'd', label: "Students' prior GPA" },
+  { id: 'e', label: "Whether students drink coffee before studying" },
+  { id: 'f', label: "How anxious students feel about the subject" },
+];
+const varInfo = {
+  treatment: { label: "Treatment Variable",   color: '#FFE14D',  desc: "What you manipulate — the cause you're testing." },
+  response:  { label: "Response Variable",    color: '#CAFF70',  desc: "What you measure — the effect you're looking for." },
+  confound:  { label: "Confounding Variable", color: '#FF90E8',  desc: "A lurking variable that could explain the result instead of your treatment." },
+};
+
+function level3() {
+  const hyp = state.hypothesis || {};
+  const varItems = [
+    { id: 'a', label: treatmentLabels[hyp.treatment] || `Whether students use: ${hyp.treatment || 'treatment'}`, role: 'treatment' },
+    { id: 'b', label: outcomeLabels[hyp.outcome]     || `Students' ${hyp.outcome || 'outcome'}`, role: 'response' },
+    ...confoundPool.map(c => ({ ...c, role: 'confound' })),
+  ];
+  const assignments = {};
+  let checked = false;
+
+  const wrap = el('div', { className: 'slide-up' });
+
+  const legend = el('div', { className: 'var-legend' });
+  Object.entries(varInfo).forEach(([role, info]) => {
+    legend.appendChild(el('div', { className: 'var-chip', style: `background:${info.color}` },
+      el('div', {}, info.label),
+      el('div', { className: 'chip-desc' }, info.desc)
+    ));
+  });
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 3 — Identify Variables'),
+    el('p', { className: 'body-text' }, 'Every experiment has three types of variables. Assign each item to the correct category.'),
+    legend,
+  ]);
+
+  const rowsWrap = el('div', { style: 'margin-bottom:16px' });
+  const fbEl = el('div');
+
+  function renderRows() {
+    rowsWrap.innerHTML = '';
+    varItems.forEach(v => {
+      const assigned = assignments[v.id];
+      const isCorrect = assigned === v.role;
+      let bg = '#fff';
+      if (assigned) bg = varInfo[assigned].color;
+      if (checked) bg = isCorrect ? '#CCFFCC' : '#FFE5E5';
+
+      const row = el('div', { className: 'var-row', style: `background:${bg}` });
+
+      const labelEl = el('div', { className: 'var-label' }, v.label);
+      if (checked && !isCorrect) {
+        labelEl.appendChild(el('span', { className: 'var-hint' }, `→ should be: ${varInfo[v.role].label}`));
+      }
+
+      const sel = el('select', {});
+      sel.appendChild(el('option', { value: '' }, '— assign —'));
+      Object.entries(varInfo).forEach(([role, info]) => {
+        const opt = el('option', { value: role }, info.label);
+        if (assigned === role) opt.selected = true;
+        sel.appendChild(opt);
+      });
+      if (checked) sel.disabled = true;
+      sel.addEventListener('change', e => {
+        assignments[v.id] = e.target.value;
+        renderRows();
+        updateCheckBtn();
+      });
+
+      row.append(labelEl, sel);
+      rowsWrap.appendChild(row);
+    });
+  }
+
+  const checkBtn = btn('Check Assignments', () => {
+    checked = true;
+    renderRows();
+    fbEl.innerHTML = '';
+    const allCorrect = varItems.every(v => assignments[v.id] === v.role);
+    fbEl.appendChild(feedback(allCorrect ? 'correct' : 'hint',
+      allCorrect
+        ? '✓ Perfect! You\'ve correctly identified all three variable types. Confounding variables are why we need random assignment.'
+        : 'Not all assignments are correct — check the highlighted ones. Confounds are variables we can\'t control that might explain the outcome instead of our treatment.'
+    ));
+    checkBtn.style.display = 'none';
+    nextWrap.appendChild(btn(allCorrect ? 'Excellent! Continue →' : 'Continue Anyway →', () => advance()));
+  }, 'primary', true);
+
+  function updateCheckBtn() {
+    const allAssigned = varItems.every(v => assignments[v.id]);
+    checkBtn.disabled = !allAssigned;
+    checkBtn.classList.toggle('disabled', !allAssigned);
+  }
+
+  const nextWrap = el('div', { className: 'row end gap-12 mt-16' });
+  nextWrap.appendChild(checkBtn);
+
+  renderRows();
+  wrap.append(instrCard, rowsWrap, fbEl, nextWrap);
+  return wrap;
+}
+
+// ── LEVEL 4 ────────────────────────────────────────────────────────────────
+const SUBJECTS = ["Alex","Blake","Casey","Dana","Ellis","Fran","Gus","Harper","Iris","Jordan"];
+const EMOJIS   = ["🧑‍🎓","👩‍💻","🧑‍🔬","👨‍🎨","👩‍🏫","🧑‍💼","👨‍🔭","👩‍🎤","🧑‍🚀","👨‍🍳"];
+
+function level4() {
+  const hyp = state.hypothesis || {};
+  const treatmentLabel   = hyp.treatment || "the treatment";
+  const noTreatmentLabel = `no ${hyp.treatment || "treatment"}`;
+
+  let groups = { control: [], treatment: [] };
+  let unassigned = SUBJECTS.map((s, i) => ({ id: i, name: s, emoji: EMOJIS[i] }));
+  let randomized = false;
+
+  const wrap = el('div', { className: 'slide-up' });
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 4 — Assign Groups'),
+    el('p', { className: 'body-text' },
+      `Assign 10 students to `,
+      el('strong', {}, 'Control'),
+      ` (${noTreatmentLabel}) and `,
+      el('strong', {}, 'Treatment'),
+      ` (${treatmentLabel}) groups — or use `,
+      el('strong', {}, 'Random Assignment'),
+      `.`
+    ),
+  ]);
+
+  const unassignedCard = el('div', { className: 'card' });
+  const unassignedWrap = el('div', { className: 'unassigned-wrap' });
+  unassignedCard.appendChild(el('div', { className: 'label mb-8' }, 'Unassigned Students'));
+  unassignedCard.appendChild(unassignedWrap);
+
+  const groupsGrid = el('div', { className: 'groups-grid' });
+  const controlBox = el('div', { className: 'group-box', style: `background:${state.run % 2 === 0 ? '#F5F0E8' : '#F5F0E8'}` });
+  const treatBox   = el('div', { className: 'group-box', style: 'background:var(--accent)' });
+  groupsGrid.append(controlBox, treatBox);
+
+  const fbEl  = el('div');
+  const nextWrap = rowEnd();
+
+  function renderAll() {
+    // Unassigned
+    unassignedWrap.innerHTML = '';
+    if (unassigned.length === 0) {
+      unassignedCard.style.display = 'none';
+    } else {
+      unassignedCard.style.display = '';
+      unassigned.forEach(s => {
+        const pair = el('div', { className: 'assign-pair' });
+        const bC = el('button', { className: 'assign-btn', style: 'background:var(--offwhite)' }, `${s.emoji} ${s.name} → Control`);
+        const bT = el('button', { className: 'assign-btn', style: 'background:var(--accent)' }, `${s.emoji} ${s.name} → Treatment`);
+        bC.addEventListener('click', () => { unassigned = unassigned.filter(x => x.id !== s.id); groups.control.push(s); renderAll(); });
+        bT.addEventListener('click', () => { unassigned = unassigned.filter(x => x.id !== s.id); groups.treatment.push(s); renderAll(); });
+        pair.append(bC, bT);
+        unassignedWrap.appendChild(pair);
+      });
+    }
+
+    // Group boxes
+    controlBox.innerHTML = `<div class="group-title">🚫 ${noTreatmentLabel} <span style="font-weight:400;font-size:12px">(${groups.control.length}/5)</span></div>`;
+    const cChips = el('div', { className: 'chips-wrap' });
+    groups.control.forEach(s => cChips.appendChild(el('span', { className: 'student-chip' }, `${s.emoji} ${s.name}`)));
+    controlBox.appendChild(cChips);
+
+    treatBox.innerHTML = `<div class="group-title">✅ ${treatmentLabel} <span style="font-weight:400;font-size:12px">(${groups.treatment.length}/5)</span></div>`;
+    const tChips = el('div', { className: 'chips-wrap' });
+    groups.treatment.forEach(s => tChips.appendChild(el('span', { className: 'student-chip' }, `${s.emoji} ${s.name}`)));
+    treatBox.appendChild(tChips);
+
+    // Feedback
+    fbEl.innerHTML = '';
+    if (randomized) {
+      fbEl.appendChild(feedback('correct', '✓ Random assignment complete! Each student had an equal chance of landing in either group — this controls for confounding variables, even ones we haven\'t thought of.'));
+    } else if (unassigned.length > 0) {
+      fbEl.appendChild(feedback('hint', '💡 Tip: Random assignment is the gold standard. Click the button below to let chance decide — ensuring the groups are equivalent before the experiment begins.'));
+    }
+
+    // Buttons
+    nextWrap.innerHTML = '';
+    const balanced = groups.control.length === 5 && groups.treatment.length === 5;
+    if (!randomized) {
+      nextWrap.appendChild(btn('🎲 Random Assignment', () => {
+        const shuffled = [...SUBJECTS.map((s, i) => ({ id: i, name: s, emoji: EMOJIS[i] }))].sort(() => Math.random() - 0.5);
+        groups = { control: shuffled.slice(0, 5), treatment: shuffled.slice(5) };
+        unassigned = [];
+        randomized = true;
+        renderAll();
+      }, 'ghost'));
+    }
+    if (balanced || randomized) {
+      nextWrap.appendChild(btn('Run the Experiment →', () => advance()));
+    }
+  }
+
+  renderAll();
+  wrap.append(instrCard, unassignedCard, groupsGrid, fbEl, nextWrap);
+  return wrap;
+}
+
+// ── LEVEL 5 ────────────────────────────────────────────────────────────────
+function buildFlawedStudies(hyp) {
+  const t = hyp?.treatment || "the treatment";
+  const o = hyp?.outcome   || "the outcome";
+  return [
+    {
+      description: `A researcher recruits 20 volunteers. Students who say they prefer ${t} are put in the treatment group. Students who don't are in the control group. After the study, the treatment group shows better ${o}.`,
+      flaw: "self-selection",
+      options: [
+        { id: "self-selection", text: `Self-selection bias — students who prefer ${t} may already differ in ways that affect ${o}` },
+        { id: "small-sample",   text: "Sample is too small to draw conclusions" },
+        { id: "no-control",     text: "There is no control group" },
+        { id: "no-flaw",        text: "This is a well-designed experiment" },
+      ],
+      explanation: `Students self-selected into the treatment group based on their preference for ${t}. They may be fundamentally different from controls in ways that affect ${o} — random assignment would have prevented this.`,
+    },
+    {
+      description: `A professor applies ${t} to her morning class and uses the control condition with her afternoon class. The afternoon class shows worse ${o} on average.`,
+      flaw: "confound-time",
+      options: [
+        { id: "confound-time", text: "Confound — morning vs. afternoon students may differ in alertness, motivation, or prior achievement" },
+        { id: "no-random",     text: "The professor didn't use a double-blind design" },
+        { id: "small-sample",  text: "Only two classes were used" },
+        { id: "no-flaw",       text: "This is a valid experiment — two groups were compared" },
+      ],
+      explanation: `Time of day is a confounding variable. Morning and afternoon students weren't randomly assigned — any difference in ${o} could be due to time of day, not ${t}.`,
+    },
+  ];
+}
+
+function level5() {
+  const studies = buildFlawedStudies(state.hypothesis);
+  let idx = 0;
+  const wrap = el('div', { className: 'slide-up' });
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 5 — Spot the Flaw'),
+    el('p', { className: 'body-text' }, 'Real experiments often have design flaws that invalidate conclusions. Identify the problem in each study.'),
+  ]);
+
+  const studyCard = el('div', { className: 'card' });
+  const fbEl = el('div');
+  const nextWrap = el('div', { className: 'row end mt-16' });
+
+  function renderStudy() {
+    const study = studies[idx];
+    studyCard.innerHTML = '';
+    fbEl.innerHTML = '';
+    nextWrap.innerHTML = '';
+
+    const numEl = el('div', { className: 'label', style: 'margin-bottom:10px' }, `Study ${idx + 1} of ${studies.length}`);
+    const descEl = el('div', { style: 'background:var(--offwhite);border:3px solid #000;border-radius:6px;padding:14px 16px;font-size:15px;color:var(--text-dark);line-height:1.6;margin-bottom:16px' }, study.description);
+    const qLabel = el('div', { className: 'label', style: 'margin-bottom:10px' }, "What's the problem?");
+    const optsWrap = el('div');
+
+    study.options.forEach(opt => {
+      const b = el('button', { className: 'opt-btn' }, opt.text);
+      b.addEventListener('click', () => {
+        if (b.disabled) return;
+        optsWrap.querySelectorAll('.opt-btn').forEach(x => x.disabled = true);
+        const correct = opt.id === study.flaw;
+        b.classList.add(correct ? 'correct' : 'incorrect');
+        fbEl.appendChild(feedback(correct ? 'correct' : 'incorrect',
+          (correct ? '✓ Correct! ' : '✗ That\'s not the main issue. ') + study.explanation));
+        nextWrap.appendChild(btn(
+          idx < studies.length - 1 ? 'Next Study →' : 'Final Step →',
+          () => { if (idx < studies.length - 1) { idx++; renderStudy(); } else advance(); }
+        ));
+      });
+      optsWrap.appendChild(b);
+    });
+
+    studyCard.append(numEl, descEl, qLabel, optsWrap);
+  }
+
+  renderStudy();
+  wrap.append(instrCard, studyCard, fbEl, nextWrap);
+  return wrap;
+}
+
+// ── LEVEL 6 ────────────────────────────────────────────────────────────────
+function buildVerdictQuestions(hyp) {
+  const t = hyp?.treatment || "the treatment";
+  const o = hyp?.outcome   || "the outcome";
+  return [
+    {
+      q: `Your randomized experiment found that the ${t} group had better ${o}. Can you conclude that ${t} CAUSES improved ${o}?`,
+      correct: "yes-caveat",
+      options: [
+        { id: "yes-caveat",  text: `Possibly — random assignment supports a causal interpretation, but only if the result is statistically significant. With n=10, the difference could be noise.` },
+        { id: "yes-always",  text: `Yes, always — random assignment means we can always attribute any observed difference to the treatment.` },
+        { id: "no-general",  text: "No — we can never make causal claims from a single experiment." },
+      ],
+      explanation: "Random assignment is necessary but not sufficient for a causal conclusion. It controls for confounds, but you still need the result to be statistically significant — meaning unlikely to occur by chance alone. With only 10 students, the study is underpowered and the observed difference could easily be noise.",
+    },
+    {
+      q: "Can you generalize your result to ALL college students?",
+      correct: "no",
+      options: [
+        { id: "yes",   text: "Yes — a randomized experiment always generalizes to the broader population." },
+        { id: "no",    text: "Not necessarily — generalization depends on whether your sample was randomly drawn from the population of interest." },
+        { id: "maybe", text: "Only if the effect size was large." },
+      ],
+      explanation: "Random assignment supports causal inference within your sample. But generalization requires random sampling — a separate issue. Your 10 volunteers may not represent all college students.",
+    },
+  ];
+}
+
+function level6() {
+  const questions = buildVerdictQuestions(state.hypothesis);
+  let idx = 0;
+  const wrap = el('div', { className: 'slide-up' });
+
+  const instrCard = card([
+    el('span', { className: 'badge' }, 'Step 6 — The Verdict'),
+    el('p', { className: 'body-text' }, "You've run your experiment. Now the hardest part — knowing what you ", el('em', {}, 'can'), " and ", el('em', {}, "can't"), " conclude."),
+  ]);
+
+  const qCard = el('div', { className: 'card' });
+  const fbEl  = el('div');
+  const nextWrap = el('div', { className: 'row end mt-16' });
+
+  function renderQ() {
+    const q = questions[idx];
+    qCard.innerHTML = '';
+    fbEl.innerHTML = '';
+    nextWrap.innerHTML = '';
+
+    const qText = el('p', { className: 'head', style: 'font-size:17px;font-weight:700;color:var(--text-dark);margin-bottom:16px' }, q.q);
+    const optsWrap = el('div');
+
+    q.options.forEach(opt => {
+      const b = el('button', { className: 'opt-btn' }, opt.text);
+      b.addEventListener('click', () => {
+        if (b.disabled) return;
+        optsWrap.querySelectorAll('.opt-btn').forEach(x => x.disabled = true);
+        const correct = opt.id === q.correct;
+        b.classList.add(correct ? 'correct' : 'incorrect');
+        fbEl.appendChild(feedback(correct ? 'correct' : 'incorrect',
+          (correct ? '✓ ' : '✗ ') + q.explanation));
+        nextWrap.appendChild(btn(
+          idx < questions.length - 1 ? 'Next Question →' : 'Finish →',
+          () => {
+            if (idx < questions.length - 1) { idx++; renderQ(); }
+            else showCompletion();
+          }
+        ));
+      });
+      optsWrap.appendChild(b);
+    });
+
+    qCard.append(qText, optsWrap);
+  }
+
+  renderQ();
+  wrap.append(instrCard, qCard, fbEl, nextWrap);
+  return wrap;
+}
+
+// ── COMPLETION ─────────────────────────────────────────────────────────────
+function showCompletion() {
+  const container = document.getElementById('level-container');
+  container.innerHTML = '';
+
+  const takeaways = [
+    ["⚡", "Causation ≠ Association", "Just because two things are related doesn't mean one causes the other."],
+    ["🎲", "Random Assignment is the Key", "It's what separates an experiment from an observational study — it controls for confounds we haven't even thought of."],
+    ["🔍", "Confounds Lurk Everywhere", "Any difference between groups other than the treatment is a potential confound."],
+    ["📏", "Scope of Conclusions", "Random assignment → causal claims (if significant) within the sample. Random sampling → generalization. You need both for the full picture."],
+  ];
+
+  const heroCard = card([], true);
+  heroCard.style.marginBottom = '20px';
+  heroCard.style.textAlign = 'center';
+  heroCard.innerHTML = `
+    <div style="font-size:48px;margin-bottom:8px">🎉</div>
+    <div class="head" style="font-size:26px;font-weight:800;color:var(--text-dark)">Experiment Complete!</div>
+    <p style="font-size:15px;color:var(--text-dark);margin-top:8px">You've walked through the full process — from observing a claim to designing a controlled experiment and interpreting what it can (and can't) prove.</p>
+  `;
+
+  const tkCard = card([]);
+  tkCard.style.marginBottom = '16px';
+  tkCard.style.textAlign = 'left';
+  tkCard.innerHTML = `<div class="head" style="font-size:16px;font-weight:800;margin-bottom:12px;color:var(--text-dark)">Key Takeaways</div>`;
+  takeaways.forEach(([icon, title, desc]) => {
+    tkCard.appendChild(el('div', { className: 'takeaway-row' },
+      el('span', { className: 'takeaway-icon' }, icon),
+      el('div', {},
+        el('div', { className: 'takeaway-title' }, title),
+        el('div', { className: 'takeaway-desc' }, desc)
+      )
+    ));
+  });
+
+  const restartBtn = btn('🔁 Try Again', () => restart());
+  restartBtn.style.width = '100%';
+
+  const div = el('div', { id: 'completion' });
+  div.append(heroCard, tkCard, restartBtn);
+  container.appendChild(div);
+}
+
+// ── Init ───────────────────────────────────────────────────────────────────
+render();
+</script>
+</body>
+</html>
