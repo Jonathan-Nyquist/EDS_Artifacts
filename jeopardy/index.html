@@ -130,6 +130,7 @@ kbd { font: 400 0.75em var(--mono); border: 2px solid var(--ink); padding: 0 5px
 .error-card h1 { font-family: var(--display); margin: 0 0 12px; font-size: 1.6rem; }
 .error-card h2 { font-family: var(--display); font-size: 1.1rem; margin: 18px 0 6px; }
 .error-card li { margin: 6px 0; line-height: 1.4; }
+.error-card h1 { overflow-wrap: anywhere; }
 .error-card .warn { color: #555; }
 .row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
 .btn.ghost { background: var(--paper); }
@@ -608,7 +609,10 @@ function useBank() {
     const param = new URLSearchParams(location.search).get('bank');
     const embedded = document.getElementById('default-bank').textContent;
     const id = param || 'default';
-    const url = /\.(md|txt)$/i.test(id) ? id : `banks/${id}.md`;
+    const rel = /\.(md|txt)$/i.test(id) ? id : `banks/${id}.md`;
+    // resolve against the page's folder, even if the URL is missing its trailing slash
+    const base = /\/$|\.html?$/i.test(location.pathname) ? location.href : location.origin + location.pathname + '/';
+    const url = new URL(rel, base).href;
     fetch(url, { cache: 'no-store' })
       .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
       .then((t) => load(id, t, url))
@@ -619,7 +623,7 @@ function useBank() {
           status: 'failed', url,
           reason: location.protocol === 'file:'
             ? 'Browsers block loading files when the page is opened straight from disk. Use "Open bank file" instead, or view it through GitHub Pages.'
-            : `${err.message}. Check that the file exists at ${url} and has been pushed.`,
+            : `${err.message}. Open that address directly to check: if it's also missing, the file isn't at ${rel} next to this page, has a different name (case and extension count), or hasn't been pushed to the branch Pages deploys from.`,
         });
       });
   }, [load]);
