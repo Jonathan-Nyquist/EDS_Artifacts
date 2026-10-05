@@ -97,6 +97,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .rich.e { font-size: clamp(1rem, 1.5vw, 1.5rem); line-height: 1.4; margin-top: 12px; max-width: 46em; }
 .rich code { font-family: var(--mono); font-size: 0.88em; background: rgba(10,10,10,.08); padding: 0.05em 0.3em; }
 .rich pre { margin: 0.6em 0 0; background: var(--stage); color: #F2F2F2; border: var(--border); padding: 0.8em 1.1em; overflow-x: auto; font-size: clamp(0.95rem, 1.5vw, 1.55rem); }
+.rich pre + p { margin-top: 0.6em; }
 .rich pre code { background: none; padding: 0; font-size: 1em; line-height: 1.4; }
 .answer { background: var(--accent); border: var(--border); padding: clamp(14px, 2vw, 26px); animation: pop .16s ease-out; }
 .answer .rich code { background: rgba(255,255,255,.55); }
@@ -217,22 +218,51 @@ A: An array
 E: `t.select('pH')` is the version that returns a one-column Table.
 
 ## 300
-Q: In plain words, what does this give you?
+Q: Table `samples`:
+```text
+Site        | Season | Chloride (mg/L)
+Wissahickon | Winter | 412
+Pennypack   | Winter | 958
+Tacony      | Summer | 187
+Cobbs Creek | Winter | 640
+```
+What does this return?
 ```python
 samples.sort('Chloride (mg/L)', descending=True).column('Site').item(0)
 ```
-A: The site with the highest chloride concentration
-E: Sort high-to-low, take the Site column, take the first entry.
+A: `'Pennypack'`
+E: Sort high-to-low, take the Site column as an array, take its first entry: the site with the most chloride.
 
 ## 400
-Q: What columns does `stations.group('Watershed')` have?
-A: `Watershed` and `count`
-E: One row per unique watershed; `count` is how many rows had that value.
+Q: Table `stations`:
+```text
+Station | Watershed
+WS-1    | Wissahickon
+WS-2    | Wissahickon
+PP-1    | Pennypack
+WS-3    | Wissahickon
+```
+What does `stations.group('Watershed')` return?
+A: A two-column table:
+```text
+Watershed   | count
+Pennypack   | 1
+Wissahickon | 3
+```
+E: One row per unique value, sorted, with `count` giving how many rows had it. The Station column disappears.
 
 ## 500
-Q: `samples` has columns Site, Season, and Chloride (mg/L). Write one expression that gives the mean chloride for each season.
+Q: Same `samples` table:
+```text
+Site        | Season | Chloride (mg/L)
+Wissahickon | Winter | 412
+Pennypack   | Winter | 958
+Tacony      | Summer | 187
+Cobbs Creek | Winter | 640
+```
+Write one expression that gives the mean chloride for each season.
 A: `samples.select('Season', 'Chloride (mg/L)').group('Season', np.mean)`
-E: `group` with a function applies it to every other column. Selecting first keeps `np.mean` away from the text column Site.
+E: Summer 187, Winter 670. `group` with a function applies it to every other column; selecting first keeps `np.mean` away from the text column Site.
 
 # Functions {#FF90E8}
 
@@ -264,9 +294,15 @@ A: `5.0`
 E: The 273.15 offsets cancel. A temperature *difference* is the same in °C and K.
 
 ## 400
-Q: Table `streams` has a column `Discharge (cfs)`. Write the call that applies the function `cfs_to_cms` to every value in it.
+Q: Table `streams`:
+```text
+Site        | Discharge (cfs)
+Wissahickon | 35.3
+Pennypack   | 70.6
+```
+Write the call that applies the function `cfs_to_cms` to every value in the Discharge column.
 A: `streams.apply(cfs_to_cms, 'Discharge (cfs)')`
-E: Pass the function itself — no parentheses after its name. The result is an array.
+E: Pass the function itself — no parentheses after its name. The result is an array, about 1.0 and 2.0 m³/s.
 
 ## 500
 Q: What does this return?
@@ -325,12 +361,21 @@ A: `'healthy hypoxic'`
 E: `return` exits immediately, so the second `if` behaves like an `elif`. 5 meets `>= 5`; 1.9 falls through both.
 
 ## 500
-Q: Which rows does this keep?
-```python
-samples.where('Chloride (mg/L)', are.between(230, 860))
+Q: Table `chloride`:
+```text
+Site        | Chloride (mg/L)
+Tacony      | 187
+Darby Creek | 230
+Wissahickon | 412
+Cobbs Creek | 860
+Pennypack   | 958
 ```
-A: Chloride of at least 230 and below 860
-E: `are.between` includes the lower bound and excludes the upper. (230 and 860 mg/L are the EPA chronic and acute chloride criteria.)
+Which sites does this keep?
+```python
+chloride.where('Chloride (mg/L)', are.between(230, 860))
+```
+A: Darby Creek and Wissahickon
+E: `are.between` includes the lower bound and excludes the upper, so 230 stays and 860 goes. (230 and 860 mg/L are the EPA chronic and acute chloride criteria.)
 
 # Loops {#FF7051}
 
