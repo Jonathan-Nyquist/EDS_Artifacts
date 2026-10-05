@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Review Jeopardy</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=JetBrains+Mono:wght@400;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --stage: #0A0A0A; --ink: #0A0A0A; --paper: #FFFFFF; --dim: #2A2A2A; --muted: #8A8A8A;
+  --yellow: #FFE14D; --lime: #CAFF70; --pink: #FF90E8; --red: #FF5A4E;
+  --display: 'Space Grotesk', system-ui, sans-serif;
+  --body: 'DM Sans', system-ui, sans-serif;
+  --mono: 'JetBrains Mono', ui-monospace, Menlo, monospace;
+  --border: 3px solid var(--ink);
+}
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body { background: var(--stage); color: var(--paper); font-family: var(--body); }
+button { font: inherit; color: inherit; cursor: pointer; }
+:focus-visible { outline: 3px solid var(--yellow); outline-offset: 3px; }
+
+.stage { height: 100%; display: flex; flex-direction: column; gap: 14px; padding: 16px 20px 18px; }
+
+/* top bar */
+.topbar { display: flex; align-items: baseline; gap: 18px; flex-wrap: wrap; }
+.title { font-family: var(--display); font-weight: 700; font-size: clamp(1.2rem, 2vw, 1.9rem); margin: 0; letter-spacing: -0.01em; }
+.meta { color: var(--muted); font-family: var(--mono); font-size: 0.85rem; }
+.notice { font-size: 0.85rem; color: var(--ink); background: var(--yellow); border: 2px solid var(--ink); padding: 2px 8px; }
+.tools { margin-left: auto; display: flex; gap: 8px; }
+
+/* buttons */
+.btn { background: var(--paper); color: var(--ink); border: var(--border); box-shadow: 4px 4px 0 var(--ink); padding: 10px 18px; font-weight: 700; transition: transform .08s, box-shadow .08s; }
+.btn:hover:not(:disabled) { transform: translate(-2px,-2px); box-shadow: 6px 6px 0 var(--ink); }
+.btn:active:not(:disabled) { transform: translate(2px,2px); box-shadow: 2px 2px 0 var(--ink); }
+.btn:disabled { opacity: .35; cursor: default; }
+.btn.small { padding: 6px 12px; font-size: 0.85rem; box-shadow: 3px 3px 0 var(--ink); }
+.topbar .btn.ghost { background: transparent; color: var(--paper); border-color: var(--paper); box-shadow: none; }
+.topbar .btn.ghost:hover:not(:disabled) { background: var(--paper); color: var(--ink); transform: none; box-shadow: none; }
+
+/* board */
+.board { position: relative; flex: 1; min-height: 0; display: grid; gap: 12px; }
+.cat { font-family: var(--display); font-weight: 700; color: var(--ink); border: var(--border); padding: 12px 10px; text-align: center;
+  font-size: clamp(0.95rem, 1.55vw, 1.6rem); line-height: 1.1; display: flex; align-items: center; justify-content: center; min-height: 3.2em; }
+.tile { background: var(--paper); color: var(--ink); border: var(--border); box-shadow: 6px 6px 0 var(--accent);
+  font-family: var(--mono); font-weight: 800; font-size: clamp(1.3rem, 3.3vw, 3.4rem); letter-spacing: -0.03em;
+  transition: transform .08s, box-shadow .08s; min-height: 0; }
+.tile:hover { transform: translate(-3px,-3px); box-shadow: 9px 9px 0 var(--accent); }
+.tile.used { background: transparent; color: var(--dim); border: 3px dashed var(--dim); box-shadow: none; }
+.tile.used:hover { transform: none; color: var(--muted); border-color: var(--muted); }
+.tile.empty { border: 3px dashed #1a1a1a; }
+
+.final { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(10,10,10,.82); }
+.final-card { min-width: min(560px, 90vw); }
+.final-card h2 { font-family: var(--display); font-size: 2.2rem; margin: 0 0 16px; }
+.final-card ol { list-style: none; margin: 0; padding: 0; }
+.final-card li { display: flex; justify-content: space-between; gap: 24px; padding: 10px 0; border-top: 2px solid var(--ink); font-size: 1.4rem; }
+.final-card li b { font-family: var(--mono); }
+.final-card li.win { background: var(--yellow); margin: 0 -14px; padding: 10px 14px; }
+
+/* scoreboard */
+.scores { display: flex; gap: 12px; flex-wrap: wrap; }
+.team { flex: 1 1 150px; max-width: 280px; background: var(--paper); color: var(--ink); border: var(--border); box-shadow: 5px 5px 0 #3a3a3a; padding: 8px 12px 10px; }
+.team.lead { box-shadow: 5px 5px 0 var(--yellow); }
+.team-top { display: flex; align-items: center; gap: 6px; }
+.team-key { font-family: var(--mono); font-size: 0.75rem; color: var(--muted); width: 1ch; }
+.team-name { flex: 1; min-width: 0; border: 0; background: transparent; font: 700 1rem var(--display); color: var(--ink); padding: 2px 0; border-bottom: 2px solid transparent; }
+.team-name:hover, .team-name:focus { border-bottom-color: var(--ink); outline: none; }
+.x { border: 0; background: none; font-size: 1.2rem; line-height: 1; color: var(--muted); padding: 0 2px; opacity: 0; }
+.team:hover .x, .x:focus-visible { opacity: 1; }
+.team-score { font-family: var(--mono); font-weight: 800; font-size: clamp(1.4rem, 2.4vw, 2.3rem); letter-spacing: -0.03em; }
+.team-score.neg { color: var(--red); }
+.adjust { display: flex; gap: 6px; opacity: 0; transition: opacity .12s; }
+.team:hover .adjust, .adjust:focus-within { opacity: 1; }
+.adjust button { flex: 1; border: 2px solid var(--ink); background: var(--paper); font: 700 0.75rem var(--mono); padding: 3px 0; }
+.adjust button:hover { background: var(--ink); color: var(--paper); }
+.team.add { flex: 0 0 auto; max-width: none; background: transparent; color: var(--muted); border: 3px dashed var(--dim); box-shadow: none; font-weight: 700; padding: 0 22px; }
+.team.add:hover { color: var(--paper); border-color: var(--paper); }
+
+/* clue overlay */
+.overlay { position: fixed; inset: 0; background: rgba(10,10,10,.88); display: grid; place-items: center; padding: 3vh 3vw; z-index: 10; }
+.clue-card { width: min(1280px, 100%); max-height: 94vh; display: flex; flex-direction: column; background: var(--paper); color: var(--ink);
+  border: var(--border); box-shadow: 12px 12px 0 var(--accent); animation: pop .16s ease-out; }
+@keyframes pop { from { transform: scale(.96); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .clue-card { animation: none; } .btn, .tile { transition: none; } }
+.clue-head { display: flex; align-items: center; gap: 16px; padding: 14px 20px; border-bottom: var(--border); }
+.chip { background: var(--accent); border: var(--border); padding: 4px 12px; font: 700 clamp(1rem, 1.5vw, 1.4rem) var(--display); }
+.clue-value { font: 800 clamp(1.3rem, 2vw, 2rem) var(--mono); letter-spacing: -0.03em; }
+.clue-head .btn { margin-left: auto; }
+.clue-body { flex: 1; overflow: auto; padding: clamp(18px, 3vw, 44px); display: flex; flex-direction: column; gap: 28px; }
+.rich p { margin: 0 0 0.6em; }
+.rich p:last-child { margin-bottom: 0; }
+.rich.q { font-size: clamp(1.4rem, 2.5vw, 2.6rem); font-weight: 500; line-height: 1.25; max-width: 38em; }
+.rich.a { font: 700 clamp(1.4rem, 2.4vw, 2.5rem)/1.2 var(--display); }
+.rich.e { font-size: clamp(1rem, 1.5vw, 1.5rem); line-height: 1.4; margin-top: 12px; max-width: 46em; }
+.rich code { font-family: var(--mono); font-size: 0.88em; background: rgba(10,10,10,.08); padding: 0.05em 0.3em; }
+.rich pre { margin: 0.6em 0 0; background: var(--stage); color: #F2F2F2; border: var(--border); padding: 0.8em 1.1em; overflow-x: auto; font-size: clamp(0.95rem, 1.5vw, 1.55rem); }
+.rich pre code { background: none; padding: 0; font-size: 1em; line-height: 1.4; }
+.answer { background: var(--accent); border: var(--border); padding: clamp(14px, 2vw, 26px); animation: pop .16s ease-out; }
+.answer .rich code { background: rgba(255,255,255,.55); }
+.answer .rich pre code { background: none; }
+.btn.reveal { align-self: flex-start; font-size: clamp(1rem, 1.4vw, 1.3rem); background: var(--accent); }
+kbd { font: 400 0.75em var(--mono); border: 2px solid var(--ink); padding: 0 5px; margin-left: 8px; }
+.clue-score { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px 22px; padding: 14px 20px; border-top: var(--border); }
+.score-pair { display: flex; flex-direction: column; gap: 6px; }
+.score-name { font: 700 0.9rem var(--display); }
+.score-name .pos { color: #1E8A3A; } .score-name .neg { color: var(--red); }
+.pair-btns { display: flex; gap: 6px; }
+.btn.plus { background: var(--lime); font-family: var(--mono); }
+.btn.minus { background: var(--paper); font-family: var(--mono); }
+.clue-score > .btn { margin-left: auto; }
+
+/* syntax colors on the dark code block */
+.hljs-keyword, .hljs-literal { color: var(--pink); }
+.hljs-string { color: var(--lime); }
+.hljs-number { color: var(--yellow); }
+.hljs-comment { color: #8A8A8A; font-style: italic; }
+.hljs-built_in { color: #90A8FF; }
+.hljs-title, .hljs-title.function_ { color: #23F0C7; }
+.hljs-params { color: #F2F2F2; }
+
+/* load / error screens */
+.center-screen { height: 100%; display: grid; place-items: center; padding: 24px; }
+.loading { font-family: var(--mono); color: var(--muted); }
+.card { background: var(--paper); color: var(--ink); border: var(--border); box-shadow: 8px 8px 0 var(--yellow); padding: 26px 28px; }
+.error-card { max-width: 760px; box-shadow: 8px 8px 0 var(--red); }
+.error-card h1 { font-family: var(--display); margin: 0 0 12px; font-size: 1.6rem; }
+.error-card h2 { font-family: var(--display); font-size: 1.1rem; margin: 18px 0 6px; }
+.error-card li { margin: 6px 0; line-height: 1.4; }
+.error-card .warn { color: #555; }
+.row { display: flex; gap: 12px; margin-top: 20px; flex-wrap: wrap; }
+.btn.ghost { background: var(--paper); }
+
+@media (max-width: 700px) {
+  .stage { padding: 10px; gap: 10px; }
+  .board { gap: 6px; }
+  .tile { box-shadow: 3px 3px 0 var(--accent); }
+  .tools { margin-left: 0; }
+  .adjust { opacity: 1; }
+}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<!-- Offline fallback only. With no ?bank=, the page loads banks/default.md;
+     this copy is used (with a yellow notice) only if that fetch fails.
+     Edit banks/default.md, not this. -->
+<script type="text/plain" id="default-bank">
+title: Sample review — arrays, tables, functions, conditionals, loops
+
+<!--
+FORMAT
+  title: ...            optional, before the first category
+  # Category name       starts a column; optional color: # Tables {#CAFF70}
+  ## 300                a clue worth 300 (the "$" is optional)
+  Q: ...                the clue; can span lines and include ```python blocks
+  A: ...                the answer
+  E: ...                optional explanation shown with the answer
+  `code`  **bold**      inline formatting
+  HTML comments like this one are ignored.
+Columns can have different numbers of clues; rows are the union of all values.
+-->
+
+# Arrays {#FFE14D}
+
+## 100
+Q: What does this return?
+```python
+make_array(3, 6, 9).item(1)
+```
+A: `6`
+E: Arrays are zero-indexed, so item 1 is the second element.
+
+## 200
+Q: What does this return?
+```python
+make_array(10, 20, 30) / 10
+```
+A: `array([1., 2., 3.])`
+E: Arithmetic on an array applies to every element. Division always produces floats.
+
+## 300
+Q: What does `np.arange(2, 10, 3)` return?
+A: `array([2, 5, 8])`
+E: Start at 2, step by 3, and stop *before* 10.
+
+## 400
+Q: What is in this array?
+```python
+make_array(1.5, 2, 'g')
+```
+A: Three strings: `array(['1.5', '2', 'g'])`
+E: An array holds a single type. One string forces every element to become a string.
+
+## 500
+Q: Daily discharge at a gauge, in cfs. What does this return?
+```python
+flow = make_array(3.2, 5.0, 4.1, 9.8)
+np.count_nonzero(np.diff(flow) > 0)
+```
+A: `2`
+E: `np.diff` gives day-to-day changes: 1.8, −0.9, 5.7. Two of them are increases — two rising days.
+
+# Tables {#CAFF70}
+
+## 100
+Q: How do you get the number of rows in a Table `t`?
+A: `t.num_rows`
+E: It's an attribute, not a method — no parentheses.
+
+## 200
+Q: Does `t.column('pH')` return a Table or an array?
+A: An array
+E: `t.select('pH')` is the version that returns a one-column Table.
+
+## 300
+Q: In plain words, what does this give you?
+```python
+samples.sort('Chloride (mg/L)', descending=True).column('Site').item(0)
+```
+A: The site with the highest chloride concentration
+E: Sort high-to-low, take the Site column, take the first entry.
+
+## 400
+Q: What columns does `stations.group('Watershed')` have?
+A: `Watershed` and `count`
+E: One row per unique watershed; `count` is how many rows had that value.
+
+## 500
+Q: `samples` has columns Site, Season, and Chloride (mg/L). Write one expression that gives the mean chloride for each season.
+A: `samples.select('Season', 'Chloride (mg/L)').group('Season', np.mean)`
+E: `group` with a function applies it to every other column. Selecting first keeps `np.mean` away from the text column Site.
+
+# Functions {#FF90E8}
+
+## 100
+Q: What keyword begins a function definition in Python?
+A: `def`
+E: `def name(arguments):` followed by an indented body.
+
+## 200
+Q: What is stored in `y`?
+```python
+def double(x):
+    print(x * 2)
+
+y = double(5)
+```
+A: `None`
+E: `print` displays 10 but doesn't hand anything back. A function without `return` returns `None`.
+
+## 300
+Q: What does this return?
+```python
+def celsius_to_kelvin(c):
+    return c + 273.15
+
+celsius_to_kelvin(25) - celsius_to_kelvin(20)
+```
+A: `5.0`
+E: The 273.15 offsets cancel. A temperature *difference* is the same in °C and K.
+
+## 400
+Q: Table `streams` has a column `Discharge (cfs)`. Write the call that applies the function `cfs_to_cms` to every value in it.
+A: `streams.apply(cfs_to_cms, 'Discharge (cfs)')`
+E: Pass the function itself — no parentheses after its name. The result is an array.
+
+## 500
+Q: What does this return?
+```python
+def scale(arr, factor=2):
+    arr = arr * factor
+    return arr.mean()
+
+temps = make_array(10, 20, 30)
+scale(temps, 3) + temps.item(0)
+```
+A: `70.0`
+E: `scale` returns the mean of 30, 60, 90, which is 60.0. Reassigning `arr` inside the function makes a new array, so `temps` still starts with 10.
+
+# Conditionals {#90A8FF}
+
+## 100
+Q: What does `7 > 3` evaluate to, and what type is it?
+A: `True`, a `bool`
+
+## 200
+Q: What is `label`?
+```python
+ph = 5.4
+if ph < 7:
+    label = 'acidic'
+elif ph < 6:
+    label = 'strongly acidic'
+else:
+    label = 'neutral or basic'
+```
+A: `'acidic'`
+E: Only the first true branch runs. The `elif` is never checked, so this ordering can never produce 'strongly acidic'.
+
+## 300
+Q: What does this return?
+```python
+sum(make_array(4.1, 7.8, 6.5, 8.2) > 7)
+```
+A: `2`
+E: The comparison gives an array of booleans. `True` counts as 1 when summed.
+
+## 400
+Q: Dissolved oxygen in mg/L. What does this return?
+```python
+def classify(do):
+    if do >= 5:
+        return 'healthy'
+    if do >= 2:
+        return 'stressed'
+    return 'hypoxic'
+
+classify(5) + ' ' + classify(1.9)
+```
+A: `'healthy hypoxic'`
+E: `return` exits immediately, so the second `if` behaves like an `elif`. 5 meets `>= 5`; 1.9 falls through both.
+
+## 500
+Q: Which rows does this keep?
+```python
+samples.where('Chloride (mg/L)', are.between(230, 860))
+```
+A: Chloride of at least 230 and below 860
+E: `are.between` includes the lower bound and excludes the upper. (230 and 860 mg/L are the EPA chronic and acute chloride criteria.)
+
+# Loops {#FF7051}
+
+## 100
+Q: How many times does the loop body run?
+```python
+for i in np.arange(5):
+    ...
+```
+A: 5
+E: `np.arange(5)` is 0, 1, 2, 3, 4.
+
+## 200
+Q: What is `total`?
+```python
+total = 0
+for depth in make_array(2, 4, 6):
+    total = total + depth
+```
+A: `12`
+
+## 300
+Q: What is `counts`?
+```python
+counts = make_array()
+for trial in np.arange(3):
+    counts = np.append(counts, trial * 10)
+```
+A: `array([ 0., 10., 20.])`
+E: `np.append` returns a new array, so you must reassign it. Starting from an empty array gives floats.
+
+## 400
+Q: A germination simulation. What is `len(germinated)`, and what's the bug?
+```python
+for plot in np.arange(50):
+    germinated = make_array()
+    seeds = np.random.random(20) < 0.7
+    germinated = np.append(germinated, sum(seeds))
+```
+A: `1` — the array is reset on every pass
+E: Create the collection array once, *before* the loop.
+
+## 500
+Q: What is `hits`?
+```python
+hits = 0
+for i in np.arange(1, 11):
+    if i % 3 == 0:
+        hits = hits + i
+    elif i % 2 == 0:
+        hits = hits - 1
+```
+A: `14`
+E: 3, 6, 9 add 18. The evens not divisible by 3 (2, 4, 8, 10) subtract 4.
+</script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.5/babel.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js"></script>
+
+<script>
+/* ---------- Bank parser: plain JS so it can be tested outside the page ---------- */
+(function (root) {
+  const FENCE = /^\s*```/;
+  const FENCE_CLOSE = /^\s*```\s*$/;
+
+  function trimBlock(s) {
+    return s.replace(/^\s*\n/, '').replace(/\s+$/, '');
+  }
+
+  function parseBank(src) {
+    const lines = src.replace(/\r\n?/g, '\n').split('\n');
+    const meta = {};
+    const categories = [];
+    const errors = [];
+    const warnings = [];
+    let cat = null, clue = null, field = null;
+    let inFence = false, fenceLine = 0, inComment = false, seenHeading = false;
+
+    const finishClue = () => {
+      if (!clue) return;
+      for (const k of ['q', 'a', 'e']) clue[k] = trimBlock(clue[k]);
+      const where = `"${cat.name}" ${clue.value} (line ${clue.line})`;
+      if (!clue.q) errors.push(`${where} has no Q: line.`);
+      if (!clue.a) errors.push(`${where} has no A: line.`);
+      clue = null;
+      field = null;
+    };
+
+    lines.forEach((line, i) => {
+      const n = i + 1;
+      if (inFence) {
+        clue[field] += '\n' + line;
+        if (FENCE_CLOSE.test(line)) inFence = false;
+        return;
+      }
+      if (inComment) {
+        if (line.includes('-->')) inComment = false;
+        return;
+      }
+      if (/^\s*<!--/.test(line)) {
+        if (!line.includes('-->')) inComment = true;
+        return;
+      }
+      let m;
+      if ((m = line.match(/^##\s+\$?\s*(\d+)\s*$/))) {
+        if (!cat) { errors.push(`Line ${n}: value "${line.trim()}" comes before any "# Category" heading.`); return; }
+        finishClue();
+        const value = Number(m[1]);
+        if (cat.clues.some((c) => c.value === value)) errors.push(`Line ${n}: "${cat.name}" already has a ${value} clue.`);
+        clue = { value, q: '', a: '', e: '', line: n };
+        cat.clues.push(clue);
+        return;
+      }
+      if (/^##/.test(line)) { errors.push(`Line ${n}: "${line.trim()}" — a ## heading must be a value, like "## 200".`); return; }
+      if ((m = line.match(/^#\s+(.+?)\s*$/))) {
+        finishClue();
+        seenHeading = true;
+        let name = m[1], color = null;
+        const cm = name.match(/^(.*?)\s*\{\s*(#[0-9a-fA-F]{3,8})\s*\}$/);
+        if (cm) { name = cm[1]; color = cm[2]; }
+        if (categories.some((c) => c.name === name)) errors.push(`Line ${n}: category "${name}" appears twice.`);
+        cat = { name, color, clues: [], line: n };
+        categories.push(cat);
+        return;
+      }
+      if (!seenHeading) {
+        const mm = line.match(/^\s*([A-Za-z]+)\s*:\s*(.*)$/);
+        if (mm) meta[mm[1].toLowerCase()] = mm[2].trim();
+        return;
+      }
+      if ((m = line.match(/^([QAE]):\s?(.*)$/))) {
+        if (!clue) { errors.push(`Line ${n}: ${m[1]}: comes before a "## value" heading.`); return; }
+        field = m[1].toLowerCase();
+        if (clue[field]) errors.push(`Line ${n}: second ${m[1]}: in "${cat.name}" ${clue.value}.`);
+        clue[field] = m[2];
+        if (FENCE.test(m[2])) { inFence = true; fenceLine = n; }
+        return;
+      }
+      if (clue && field) {
+        clue[field] += '\n' + line;
+        if (FENCE.test(line)) { inFence = true; fenceLine = n; }
+        return;
+      }
+      if (line.trim()) warnings.push(`Line ${n}: text outside a Q:/A:/E: field was ignored.`);
+    });
+
+    if (inFence) errors.push(`Line ${fenceLine}: a \`\`\` code block is never closed.`);
+    if (cat) finishClue();
+    if (!categories.length) errors.push('No categories found. Start a column with a line like "# Functions".');
+    categories.forEach((c) => {
+      if (!c.clues.length) errors.push(`Category "${c.name}" (line ${c.line}) has no clues.`);
+      c.clues.sort((a, b) => a.value - b.value);
+    });
+    const values = [...new Set(categories.flatMap((c) => c.clues.map((x) => x.value)))].sort((a, b) => a - b);
+    categories.forEach((c) => {
+      const missing = values.filter((v) => !c.clues.some((x) => x.value === v));
+      if (missing.length) warnings.push(`"${c.name}" has no clue for ${missing.join(', ')}; those tiles will be blank.`);
+    });
+    return { meta, categories, values, errors, warnings };
+  }
+
+  /* ---------- Rendering clue text to HTML ---------- */
+  const esc = (s) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+
+  function inline(s) {
+    // split on inline code first so ** inside code stays literal
+    return s.split(/(`[^`]+`)/g).map((part) =>
+      part.startsWith('`') && part.endsWith('`') && part.length > 1
+        ? `<code>${esc(part.slice(1, -1))}</code>`
+        : esc(part).replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>').replace(/(^|[\s(])\*([^*\s][^*]*)\*/g, '$1<em>$2</em>')
+    ).join('');
+  }
+
+  function dedent(lines) {
+    const ind = lines.filter((l) => l.trim()).map((l) => l.match(/^ */)[0].length);
+    const min = ind.length ? Math.min(...ind) : 0;
+    return lines.map((l) => l.slice(min)).join('\n');
+  }
+
+  function renderText(text, hljs) {
+    const out = [];
+    let para = [], code = null, lang = '';
+    const flush = () => { if (para.length) out.push(`<p>${para.map(inline).join('<br>')}</p>`); para = []; };
+    for (const line of text.split('\n')) {
+      if (code !== null) {
+        if (FENCE_CLOSE.test(line)) {
+          const src = dedent(code);
+          const body = hljs && hljs.getLanguage(lang) ? hljs.highlight(src, { language: lang, ignoreIllegals: true }).value : esc(src);
+          out.push(`<pre><code class="hljs">${body}</code></pre>`);
+          code = null;
+        } else code.push(line);
+        continue;
+      }
+      const fm = line.match(/^\s*```\s*([\w+-]*)\s*$/);
+      if (fm) { flush(); code = []; lang = fm[1] || 'python'; continue; }
+      if (!line.trim()) flush(); else para.push(line.trim());
+    }
+    flush();
+    return out.join('');
+  }
+
+  root.JeopardyBank = { parseBank, renderText };
+})(typeof window !== 'undefined' ? window : globalThis);
+</script>
+
+<script type="text/babel" data-presets="react">
+const { useState, useEffect, useRef, useMemo, useCallback } = React;
+const { parseBank, renderText } = window.JeopardyBank;
+
+const PALETTE = ['#FFE14D', '#CAFF70', '#FF90E8', '#90A8FF', '#FF7051', '#23F0C7'];
+const MAX_TEAMS = 8;
+const keyOf = (cat, value) => `${cat.name}|${value}`;
+
+/* ---------- storage (guarded: storage can throw or be empty) ---------- */
+const store = {
+  get(k) { try { return JSON.parse(localStorage.getItem(k)); } catch { return null; } },
+  set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
+};
+
+/* ---------- loading the bank ---------- */
+function useBank() {
+  const [state, setState] = useState({ status: 'loading' });
+  const load = useCallback((id, text, source, notice = null) => {
+    setState({ status: 'ready', id, source, text, notice, bank: parseBank(text) });
+  }, []);
+
+  useEffect(() => {
+    const param = new URLSearchParams(location.search).get('bank');
+    const embedded = document.getElementById('default-bank').textContent;
+    const id = param || 'default';
+    const url = /\.(md|txt)$/i.test(id) ? id : `banks/${id}.md`;
+    fetch(url, { cache: 'no-store' })
+      .then((r) => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.text(); })
+      .then((t) => load(id, t, url))
+      .catch((err) => {
+        // no ?bank= : fall back to the built-in copy, but say so on screen
+        if (!param) { load('default', embedded, 'built-in copy', `Couldn't load ${url}, so this is the copy built into index.html.`); return; }
+        setState({
+          status: 'failed', url,
+          reason: location.protocol === 'file:'
+            ? 'Browsers block loading files when the page is opened straight from disk. Use "Open bank file" instead, or view it through GitHub Pages.'
+            : `${err.message}. Check that the file exists at ${url} and has been pushed.`,
+        });
+      });
+  }, [load]);
+
+  return [state, load];
+}
+
+function openFilePicker(onText) {
+  const input = document.createElement('input');
+  input.type = 'file';
+  input.accept = '.md,.txt,text/plain,text/markdown';
+  input.onchange = () => {
+    const f = input.files && input.files[0];
+    if (!f) return;
+    f.text().then((t) => onText(f.name.replace(/\.(md|txt)$/i, ''), t, f.name));
+  };
+  input.click();
+}
+
+/* ---------- game state with undo + persistence ---------- */
+function useGame(bankId, bank) {
+  const storageKey = `jeopardy:v1:${bankId}`;
+  const validKeys = useMemo(() => new Set(bank.categories.flatMap((c) => c.clues.map((x) => keyOf(c, x.value)))), [bank]);
+
+  const fresh = () => ({ teams: [1, 2, 3].map((n) => ({ name: `Team ${n}`, score: 0 })), used: {}, history: [] });
+  const [game, setGame] = useState(() => {
+    const saved = store.get(storageKey);
+    if (!saved || !Array.isArray(saved.teams)) return fresh();
+    // keep only tiles that still exist if the bank was edited mid-game
+    const used = Object.fromEntries(Object.keys(saved.used || {}).filter((k) => validKeys.has(k)).map((k) => [k, true]));
+    return { teams: saved.teams, used, history: (saved.history || []).filter((h) => !h.key || validKeys.has(h.key)) };
+  });
+  useEffect(() => { store.set(storageKey, game); }, [storageKey, game]);
+
+  const api = useMemo(() => ({
+    score(team, delta, key) {
+      setGame((g) => ({
+        ...g,
+        teams: g.teams.map((t, i) => (i === team ? { ...t, score: t.score + delta } : t)),
+        history: [...g.history, { type: 'score', team, delta, key }],
+      }));
+    },
+    markUsed(key) {
+      setGame((g) => (g.used[key] ? g : { ...g, used: { ...g.used, [key]: true }, history: [...g.history, { type: 'used', key }] }));
+    },
+    undo() {
+      setGame((g) => {
+        const last = g.history[g.history.length - 1];
+        if (!last) return g;
+        const history = g.history.slice(0, -1);
+        if (last.type === 'score') {
+          return { ...g, history, teams: g.teams.map((t, i) => (i === last.team ? { ...t, score: t.score - last.delta } : t)) };
+        }
+        const used = { ...g.used };
+        delete used[last.key];
+        return { ...g, history, used };
+      });
+    },
+    rename(team, name) { setGame((g) => ({ ...g, teams: g.teams.map((t, i) => (i === team ? { ...t, name } : t)) })); },
+    addTeam() {
+      setGame((g) => (g.teams.length >= MAX_TEAMS ? g : { ...g, teams: [...g.teams, { name: `Team ${g.teams.length + 1}`, score: 0 }] }));
+    },
+    removeTeam(team) {
+      // history entries refer to team indexes, so removing a team clears undo
+      setGame((g) => ({ ...g, teams: g.teams.filter((_, i) => i !== team), history: [] }));
+    },
+    reset() { setGame((g) => ({ teams: g.teams.map((t) => ({ ...t, score: 0 })), used: {}, history: [] })); },
+  }), []);
+
+  return [game, api];
+}
+
+/* ---------- small pieces ---------- */
+const Rich = ({ text, className }) => (
+  <div className={className} dangerouslySetInnerHTML={{ __html: renderText(text, window.hljs) }} />
+);
+const money = (n) => (n < 0 ? `−$${Math.abs(n).toLocaleString()}` : `$${n.toLocaleString()}`);
+
+function ErrorScreen({ title, items, warnings, onPick, onDefault }) {
+  return (
+    <div className="center-screen">
+      <div className="card error-card">
+        <h1>{title}</h1>
+        <ul>{items.map((e, i) => <li key={i}>{e}</li>)}</ul>
+        {warnings && warnings.length > 0 && (
+          <>
+            <h2>Also worth fixing</h2>
+            <ul className="warn">{warnings.map((e, i) => <li key={i}>{e}</li>)}</ul>
+          </>
+        )}
+        <div className="row">
+          <button className="btn" onClick={onPick}>Open bank file</button>
+          <button className="btn ghost" onClick={onDefault}>Play the built-in bank</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- clue overlay ---------- */
+function ClueView({ cat, clue, color, teams, revealed, awards, onReveal, onClose, onScore, onUndo }) {
+  return (
+    <div className="overlay" role="dialog" aria-modal="true" aria-label={`${cat.name} for ${clue.value}`}>
+      <div className="clue-card" style={{ '--accent': color }}>
+        <header className="clue-head">
+          <span className="chip">{cat.name}</span>
+          <span className="clue-value">{money(clue.value)}</span>
+          <button className="btn small ghost" onClick={onClose} title="Esc">Back to board</button>
+        </header>
+
+        <div className="clue-body">
+          <Rich text={clue.q} className="rich q" />
+          {revealed ? (
+            <div className="answer">
+              <Rich text={clue.a} className="rich a" />
+              {clue.e && <Rich text={clue.e} className="rich e" />}
+            </div>
+          ) : (
+            <button className="btn reveal" onClick={onReveal}>Show answer <kbd>space</kbd></button>
+          )}
+        </div>
+
+        <footer className="clue-score">
+          {teams.map((t, i) => {
+            const got = awards.filter((a) => a.team === i).reduce((s, a) => s + a.delta, 0);
+            return (
+              <div className="score-pair" key={i}>
+                <span className="score-name">{t.name}{got !== 0 && <b className={got > 0 ? 'pos' : 'neg'}> {got > 0 ? '+' : '−'}{Math.abs(got)}</b>}</span>
+                <div className="pair-btns">
+                  <button className="btn small plus" onClick={() => onScore(i, clue.value)} title={i < 9 ? `Key ${i + 1}` : undefined}>+{clue.value}</button>
+                  <button className="btn small minus" onClick={() => onScore(i, -clue.value)} title={i < 9 ? `Shift + ${i + 1}` : undefined}>−{clue.value}</button>
+                </div>
+              </div>
+            );
+          })}
+          <button className="btn small ghost" onClick={onUndo} title="U">Undo</button>
+        </footer>
+      </div>
+    </div>
+  );
+}
+
+/* ---------- the game ---------- */
+function Game({ id, source, notice, bank, onPickFile }) {
+  const [game, api] = useGame(id, bank);
+  const [open, setOpen] = useState(null); // { c, v }
+  const [revealed, setRevealed] = useState(false);
+  const step = bank.values[0] || 100;
+  const colorOf = (c, i) => c.color || PALETTE[i % PALETTE.length];
+
+  const total = bank.categories.reduce((s, c) => s + c.clues.length, 0);
+  const left = total - Object.keys(game.used).length;
+
+  const openClue = (c, v) => { if (document.activeElement) document.activeElement.blur(); setOpen({ c, v }); setRevealed(!!game.used[keyOf(bank.categories[c], v)]); };
+  const close = () => setOpen(null);
+  const current = open && bank.categories[open.c];
+  const currentClue = current && current.clues.find((x) => x.value === open.v);
+  const currentKey = current && keyOf(current, open.v);
+
+  const reveal = () => { setRevealed(true); api.markUsed(currentKey); };
+  const scoreClue = (team, delta) => {
+    api.score(team, delta, currentKey);
+    api.markUsed(currentKey); // scoring before reveal still uses up the tile
+  };
+
+  // one listener, always attached; reads the latest state through a ref
+  const handler = useRef();
+  handler.current = (e) => {
+    if (e.target.closest && e.target.closest('input, textarea')) return;
+    if (e.metaKey || e.ctrlKey) {
+      if (e.key.toLowerCase() === 'z') { e.preventDefault(); api.undo(); }
+      return;
+    }
+    if (e.key === 'u' || e.key === 'U') { api.undo(); return; }
+    if (!open) return;
+    if (e.key === 'Escape') { close(); return; }
+    if (e.key === ' ' || e.key === 'Enter') {
+      if (e.target.tagName === 'BUTTON') return; // a keyboard-focused button handles its own activation
+      e.preventDefault();
+      revealed ? close() : reveal();
+      return;
+    }
+    const d = e.code && e.code.match(/^(?:Digit|Numpad)([1-9])$/);
+    if (d) {
+      const team = Number(d[1]) - 1;
+      if (team < game.teams.length) { e.preventDefault(); scoreClue(team, e.shiftKey ? -open.v : open.v); }
+    }
+  };
+  useEffect(() => {
+    const fn = (e) => handler.current(e);
+    // mouse clicks shouldn't leave focus on a button, or the next Space would re-click it
+    const unfocus = (e) => { if (e.detail > 0 && e.target.closest && e.target.closest('button')) e.target.closest('button').blur(); };
+    window.addEventListener('keydown', fn);
+    window.addEventListener('click', unfocus);
+    return () => { window.removeEventListener('keydown', fn); window.removeEventListener('click', unfocus); };
+  }, []);
+
+  const leader = Math.max(...game.teams.map((t) => t.score));
+  const awards = currentKey ? game.history.filter((h) => h.type === 'score' && h.key === currentKey) : [];
+
+  return (
+    <div className="stage">
+      <header className="topbar">
+        <h1 className="title">{bank.meta.title || 'Review'}</h1>
+        <span className="meta">{left} of {total} clues left</span>
+        {notice && <span className="notice" title="Edit banks/default.md and view the page on GitHub Pages, or use Open bank file.">{notice}</span>}
+        <div className="tools">
+          <button className="btn small ghost" onClick={api.undo} disabled={!game.history.length} title="U or Ctrl+Z">Undo</button>
+          <button className="btn small ghost" onClick={onPickFile} title={`Playing ${source}`}>Open bank file</button>
+          <button className="btn small ghost" onClick={() => { if (confirm('Clear all scores and tiles? Team names stay.')) { api.reset(); close(); } }}>New game</button>
+        </div>
+      </header>
+
+      <main className="board" style={{ gridTemplateColumns: `repeat(${bank.categories.length}, minmax(0, 1fr))`, gridTemplateRows: `auto repeat(${bank.values.length}, minmax(0, 1fr))` }}>
+        {bank.categories.map((c, i) => (
+          <div key={c.name} className="cat" style={{ background: colorOf(c, i) }}>{c.name}</div>
+        ))}
+        {bank.values.map((v) => bank.categories.map((c, i) => {
+          const has = c.clues.some((x) => x.value === v);
+          if (!has) return <div key={c.name + v} className="tile empty" aria-hidden="true" />;
+          const used = game.used[keyOf(c, v)];
+          return (
+            <button key={c.name + v} className={`tile${used ? ' used' : ''}`} style={{ '--accent': colorOf(c, i) }}
+              onClick={() => openClue(i, v)} aria-label={`${c.name} for ${v}${used ? ', already played' : ''}`}>
+              {money(v)}
+            </button>
+          );
+        }))}
+        {left === 0 && !open && (
+          <div className="final">
+            <div className="card final-card">
+              <h2>Final scores</h2>
+              <ol>
+                {[...game.teams].sort((a, b) => b.score - a.score).map((t, i) => (
+                  <li key={i} className={t.score === leader ? 'win' : ''}><span>{t.name}</span><b>{money(t.score)}</b></li>
+                ))}
+              </ol>
+            </div>
+          </div>
+        )}
+      </main>
+
+      <footer className="scores">
+        {game.teams.map((t, i) => (
+          <div key={i} className={`team${t.score === leader && leader !== 0 ? ' lead' : ''}`}>
+            <div className="team-top">
+              <span className="team-key">{i < 9 ? i + 1 : ''}</span>
+              <input className="team-name" value={t.name} onChange={(e) => api.rename(i, e.target.value)} aria-label={`Team ${i + 1} name`} />
+              {game.teams.length > 1 && (
+                <button className="x" aria-label={`Remove ${t.name}`}
+                  onClick={() => { if (confirm(`Remove ${t.name}? This also clears the undo history.`)) api.removeTeam(i); }}>×</button>
+              )}
+            </div>
+            <div className={`team-score${t.score < 0 ? ' neg' : ''}`}>{money(t.score)}</div>
+            <div className="adjust">
+              <button onClick={() => api.score(i, -step)} aria-label={`Subtract ${step} from ${t.name}`}>−{step}</button>
+              <button onClick={() => api.score(i, step)} aria-label={`Add ${step} to ${t.name}`}>+{step}</button>
+            </div>
+          </div>
+        ))}
+        {game.teams.length < MAX_TEAMS && <button className="team add" onClick={api.addTeam}>+ Add team</button>}
+      </footer>
+
+      {open && currentClue && (
+        <ClueView cat={current} clue={currentClue} color={colorOf(current, open.c)} teams={game.teams}
+          revealed={revealed} awards={awards} onReveal={reveal} onClose={close} onScore={scoreClue} onUndo={api.undo} />
+      )}
+    </div>
+  );
+}
+
+function App() {
+  const [state, load] = useBank();
+  const pick = () => openFilePicker(load);
+  const playDefault = () => load('default', document.getElementById('default-bank').textContent, 'built-in copy');
+
+  if (state.status === 'loading') return <div className="center-screen"><p className="loading">Loading bank…</p></div>;
+  if (state.status === 'failed') {
+    return <ErrorScreen title={`Couldn't load ${state.url}`} items={[state.reason]} onPick={pick} onDefault={playDefault} />;
+  }
+  const { bank } = state;
+  if (bank.errors.length) {
+    return <ErrorScreen title={`${state.source} has ${bank.errors.length} problem${bank.errors.length > 1 ? 's' : ''}`}
+      items={bank.errors} warnings={bank.warnings} onPick={pick} onDefault={playDefault} />;
+  }
+  if (bank.warnings.length) console.warn('Bank warnings:\n' + bank.warnings.join('\n'));
+  // key forces a clean remount (fresh game state) whenever a different bank loads
+  return <Game key={state.id + '::' + state.text.length} id={state.id} source={state.source} notice={state.notice} bank={bank} onPickFile={pick} />;
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+</script>
+</body>
+</html>
