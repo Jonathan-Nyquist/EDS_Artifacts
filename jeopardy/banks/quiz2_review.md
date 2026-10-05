@@ -1,4 +1,4 @@
-title: Sample review — arrays, tables, functions, conditionals, loops
+title: Quiz #2 Review — arrays, tables, functions, conditionals, loops
 
 <!--
 FORMAT
